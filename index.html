@@ -1236,14 +1236,19 @@ async function oaJudge(base,key,ask,prefer,jsonMode){
       model=prefer.find(p=>ids.includes(p))||ids.find(i=>/:free$/.test(i)&&/llama|gpt-oss|qwen|gemma|mistral/i.test(i))||ids.find(i=>/llama|gpt-oss|qwen|gemma|mistral/i.test(i))||ids[0];}
     catch(e){return{error:"couldn't reach the AI service (blocked or offline)"};}
     if(!model)return{error:"no model available"};OA_MODEL[base]=model;}
-  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
-  try{const body={model,temperature:0,max_tokens:200,messages:[{role:"system",content:AI_RULES},{role:"user",content:ask}]};if(jsonMode)body.response_format={type:"json_object"};
-    const r=await fetch(base+"/chat/completions",{method:"POST",signal:ctl.signal,headers:h,body:JSON.stringify(body)});
-    const j=await r.json().catch(()=>({}));
-    if(!r.ok)return{error:r.status===401?"key rejected":r.status===429?"free AI limit reached, try later":((j.error&&j.error.message)||("HTTP "+r.status)).slice(0,90)};
-    const out=(((j.choices||[])[0]||{}).message||{}).content||"";const m=out.match(/\{[\s\S]*\}/);if(!m)return{error:"unreadable reply"};
-    return tidy(JSON.parse(m[0]));
-  }catch(e){return{error:e.name==="AbortError"?"timed out":"couldn't reach the AI service (blocked or offline)"};}finally{clearTimeout(to);}
+  // Try strict JSON mode first; if the service rejects the format, salvage its draft or retry in plain mode.
+  const grab=s=>{const m=String(s||"").match(/\{[\s\S]*?\}/);if(!m)return null;try{return tidy(JSON.parse(m[0]));}catch(e){return null;}};
+  for(const strict of jsonMode?[true,false]:[false]){
+    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
+    try{const body={model,temperature:0,max_tokens:400,messages:[{role:"system",content:AI_RULES},{role:"user",content:ask+" Respond with one JSON object only."}]};if(strict)body.response_format={type:"json_object"};
+      const r=await fetch(base+"/chat/completions",{method:"POST",signal:ctl.signal,headers:h,body:JSON.stringify(body)});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){if(r.status===401)return{error:"key rejected"};if(r.status===429)return{error:"free AI limit reached, try later"};
+        const fg=grab(j.error&&j.error.failed_generation);if(fg)return fg;if(strict)continue;return{error:((j.error&&j.error.message)||("HTTP "+r.status)).slice(0,90)};}
+      const v=grab((((j.choices||[])[0]||{}).message||{}).content);if(v)return v;if(strict)continue;return{error:"unreadable reply"};
+    }catch(e){return{error:e.name==="AbortError"?"timed out":"couldn't reach the AI service (blocked or offline)"};}finally{clearTimeout(to);}
+  }
+  return{error:"unreadable reply"};
 }
 
 // ================= Menu =================
