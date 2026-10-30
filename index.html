@@ -1187,7 +1187,7 @@ async function judgeAI(p,text,noCache){
     catch(e){const c=e&&e.code;if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared"||c==="capability_disabled"){sampleDenied=true;return{error:"Claude access wasn't allowed"};}
       return{error:c==="rate_limited"?"too many checks, slow down":c==="session_expired"?"sign in to Claude again":"couldn't reach Claude"};}
   }else{
-    if(!cfg.key||!cfg.key.startsWith("sk-ant")){const r=await geminiJudge(cfg.key||BUILTIN_GEMINI_KEY,ask);if(r.error)return r;res=r;if(!res.name)res.name=text;}
+    const kk=cfg.key||BUILTIN_GEMINI_KEY;if(!kk.startsWith("sk-ant")){const r=kk.startsWith("gsk_")?await oaJudge("https://api.groq.com/openai/v1",kk,ask,["llama-3.3-70b-versatile","llama-3.1-8b-instant","openai/gpt-oss-20b"],true):kk.startsWith("sk-or-")?await oaJudge("https://openrouter.ai/api/v1",kk,ask,["meta-llama/llama-3.3-70b-instruct:free"],false):await geminiJudge(kk,ask);if(r.error)return r;res=r;if(!res.name)res.name=text;}
     else{
     const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
     try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ctl.signal,
@@ -1226,6 +1226,24 @@ async function geminiJudge(key,ask){
     }catch(e){if(e.name==="AbortError")lastErr="timed out";else if(!/rejected/.test(lastErr))lastErr=location.protocol==="file:"||navigator.onLine?"couldn't reach Google (blocked or offline)":"you're offline";}finally{clearTimeout(to);}
   }
   return{error:lastErr};
+}
+// OpenAI-style services (Groq, OpenRouter): pick an available model once, then ask for JSON.
+const OA_MODEL={};
+async function oaJudge(base,key,ask,prefer,jsonMode){
+  const h={"content-type":"application/json","authorization":"Bearer "+key};
+  let model=OA_MODEL[base];
+  if(!model){try{const r=await fetch(base+"/models",{headers:h});if(r.status===401)return{error:"key rejected"};const j=await r.json();const ids=(j.data||[]).map(m=>m.id);
+      model=prefer.find(p=>ids.includes(p))||ids.find(i=>/:free$/.test(i)&&/llama|gpt-oss|qwen|gemma|mistral/i.test(i))||ids.find(i=>/llama|gpt-oss|qwen|gemma|mistral/i.test(i))||ids[0];}
+    catch(e){return{error:"couldn't reach the AI service (blocked or offline)"};}
+    if(!model)return{error:"no model available"};OA_MODEL[base]=model;}
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
+  try{const body={model,temperature:0,max_tokens:200,messages:[{role:"system",content:AI_RULES},{role:"user",content:ask}]};if(jsonMode)body.response_format={type:"json_object"};
+    const r=await fetch(base+"/chat/completions",{method:"POST",signal:ctl.signal,headers:h,body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)return{error:r.status===401?"key rejected":r.status===429?"free AI limit reached, try later":((j.error&&j.error.message)||("HTTP "+r.status)).slice(0,90)};
+    const out=(((j.choices||[])[0]||{}).message||{}).content||"";const m=out.match(/\{[\s\S]*\}/);if(!m)return{error:"unreadable reply"};
+    return tidy(JSON.parse(m[0]));
+  }catch(e){return{error:e.name==="AbortError"?"timed out":"couldn't reach the AI service (blocked or offline)"};}finally{clearTimeout(to);}
 }
 
 // ================= Menu =================
@@ -1274,9 +1292,9 @@ function settings(msg){
       <p class="hint">When an answer isn't in the word bank, AI checks whether it's valid and how rare it is. The clock pauses while it checks, and each verdict is remembered.</p>
       <label class="tog"><input type="checkbox" id="aion" ${c.on?"checked":""}> Check answers with AI</label>
       ${SAMPLE?`<p class="hint">Uses your Claude account. No key needed.${sampleDenied?` <span class="err">Permission was declined this session, so checking is off until you reload.</span>`:""}</p>`
-      :`<div style="margin-top:10px"><span class="lbl">OWN API KEY (OPTIONAL)</span><input id="aikey" type="password" autocomplete="off" value="${esc(c.key)}" placeholder="AIza… or sk-ant-…"></div>
+      :`<div style="margin-top:10px"><span class="lbl">AI KEY</span><input id="aikey" type="password" autocomplete="off" value="${esc(c.key)}" placeholder="gsk_… (Groq), AIza…, sk-or-… or sk-ant-…"></div>
       <span class="lbl">CLAUDE MODEL (ANTHROPIC KEY ONLY)</span><select id="aimodel">${MODELS.map(([v,l])=>`<option value="${v}" ${c.model===v?"selected":""}>${l}</option>`).join("")}</select>
-      <p class="hint">Paste a free Google Gemini key (starts with AIza) or an Anthropic key to turn on AI checking. It's saved only on this device, never in the game file. Without a key, answers are checked against the word bank.</p>`}
+      <p class="hint">Paste a free Groq key (starts with gsk_, from console.groq.com) to turn on AI checking. Google Gemini (AIza…), OpenRouter (sk-or-…) and Anthropic (sk-ant-…) keys also work. The key is saved only on this device, never in the game file.</p>`}
       <div class="row"><button class="pbtn c m-nova" data-act="aiSave">SAVE</button><button class="pbtn" data-act="aiTest">TEST</button><button class="pbtn" data-act="aiClear">FORGET VERDICTS</button></div>
       <p id="aimsg" class="hint">${msg||""}</p></div>
     <div class="glass card"><h3 style="font-size:13px">GRAPHICS</h3><p class="hint">Auto switches to performance mode if the game starts to lag.</p>
