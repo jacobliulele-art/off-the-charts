@@ -119,6 +119,7 @@ input:focus,select:focus{outline:none;--bc:var(--acc)}
 .fixw{color:var(--hl)}
 .sw{display:flex;gap:3px;justify-content:center;margin:4px 0 8px}.sw i{width:16px;height:30px;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
 .modegrid .mbtn.wide{grid-column:1/-1}
+.modegrid .mbtn.cupbtn{--a:#ff5fd2;--b:#a5f3fc;text-shadow:0 0 8px #ff5fd2}
 .scale{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;font-family:var(--head);font-size:10px;letter-spacing:.2em;color:var(--muted)}
 .scale i{display:inline-block;width:22px;height:6px;opacity:.3}
 .scale i.on{opacity:1;box-shadow:0 0 10px currentColor}
@@ -746,6 +747,9 @@ for(const p of PROMPTS){const cup=p.t[5];let arr=p.t.slice(0,5).filter(s=>s&&s.t
   while(arr.length<5&&arr.length){const last=arr.pop().split("|"),h=Math.ceil(last.length/2);if(last.length<2){arr.push(last.join("|"));break;}arr.push(last.slice(0,h).join("|"),last.slice(h).join("|"));}
   while(arr.length<5)arr.push("");p.t=arr;if(cup)p.t[5]=cup;}
 
+// Inside joke: both answers are ONE IN A CUPIDIUM!!!!
+PROMPTS.push({q:"Give or Take?",c:"MYSTERY",nowiki:1,t:["","","","","","give|take"]});
+
 </script>
 <script>
 // ================= Config =================
@@ -782,7 +786,11 @@ const THEMES={
       {id:"astro",name:"JETPACK",line:"Just you, a helmet and two thrusters."},
       {id:"pod",name:"BRASS POD",line:"A riveted capsule from an older future."},
       {id:"iss",name:"SPACE STATION",line:"Solar wings, many modules, always in orbit."},
-      {id:"lander",name:"MOON LANDER",line:"Gold foil, spindly legs, one small step."}]},
+      {id:"lander",name:"MOON LANDER",line:"Gold foil, spindly legs, one small step."},
+      {id:"fighter",name:"STARFIGHTER",line:"Swept wings, orange stripes, very fast."},
+      {id:"sat",name:"SATELLITE",line:"Gold foil, big dish, always listening."},
+      {id:"phoenix",name:"PHOENIX",line:"A firebird that rises from every miss."},
+      {id:"cupid",name:"CUPIDIUM CORE",line:"The rarest element, in rocket form."}]},
   ocean:{name:"OCEAN",up:false,meter:"DEPTH",go:"DIVE ▼",ign:"DESCENT IN",abort:"SURFACE",
     tag:"THE RARE ANSWER GAME",hint:"▼ the stranger the answer, the deeper you go ▼",
     tiers:["SPLASH","SNORKEL","REEF DIVE","DEEP DIVE","ABYSS","ONE IN A CUPIDIUM!!!!"],
@@ -800,7 +808,11 @@ const THEMES={
       {id:"sphere",name:"BATHYSPHERE",line:"A steel ball on a very long cable."},
       {id:"puffer",name:"PUFFERFISH",line:"Small, round, slightly alarmed."},
       {id:"jelly",name:"JELLYFISH",line:"Glows in the dark. Drifts with style."},
-      {id:"manta",name:"MANTA RAY",line:"Wide wings, slow flaps, total calm."}]}
+      {id:"manta",name:"MANTA RAY",line:"Wide wings, slow flaps, total calm."},
+      {id:"shark",name:"SHARK",line:"Grey, toothy, never stops swimming."},
+      {id:"octo",name:"OCTOPUS",line:"Eight arms, three hearts, zero worries."},
+      {id:"angler",name:"ANGLERFISH",line:"Brings its own light to the deep."},
+      {id:"seahorse",name:"SEAHORSE",line:"Small, curly and surprisingly brave."}]}
 };
 
 // ================= Helpers =================
@@ -832,7 +844,7 @@ function deckDraw(n,avoidCat){
   return out.map(q=>PROMPTS.findIndex(p=>p.q===q));
 }
 function pickFresh(n){return deckDraw(n);}
-const examples=(pi,n=3)=>shuffle(PROMPTS[pi].t[4].split("|").filter(Boolean).map(x=>x.split("/")[0]),rng("ex"+pi+today())).slice(0,n);
+const examples=(pi,n=3)=>shuffle(((PROMPTS[pi].t[4]||"").trim()?PROMPTS[pi].t[4]:PROMPTS[pi].t.filter(Boolean).pop()||"").split("|").filter(Boolean).map(x=>x.split("/")[0]),rng("ex"+pi+today())).slice(0,n);
 const getCat=p=>p.c||CAT[p.q]||"TRIVIA";
 let THEME=store.get("oddball.theme","space");if(!THEMES[THEME])THEME="space";
 let TH=THEMES[THEME];
@@ -1047,7 +1059,7 @@ function spaceNear(t){
 
 // ---------- OCEAN ----------
 const SKY_O=[[-300,"#6fbff0"],[0,"#c3ecff"]];
-const SEA=[[0,"#3fbde6"],[200,"#2399cf"],[600,"#1a7fb8"],[1100,"#145f99"],[1700,"#0d3e70"],[2400,"#082650"],[3200,"#05173a"],[4000,"#061226"],[4800,"#071a24"],[5800,"#030b14"],[7000,"#02060c"],[99999,"#02060c"]];
+const SEA=[[0,"#3fbde6"],[200,"#2399cf"],[600,"#1a7fb8"],[1100,"#16639e"],[1700,"#11477f"],[2400,"#0d3366"],[3200,"#0b2552"],[4000,"#0d1d44"],[4800,"#111c3a"],[5800,"#0c1530"],[7000,"#0a1028"],[99999,"#0a1028"]];
 function wallW(D,side){
   const n=Math.sin(D*.011+side*2)*12+Math.sin(D*.033+side)*6+Math.sin(D*.09+side*3)*2;
   let env=0;
@@ -1075,12 +1087,13 @@ function oceanScene(t){
   if(cam<1100){for(let b=0;b<7;b++){const x0=((b*W/6+t*.004)%(W+80))-40;for(let y=Math.max(0,S0);y<Math.min(H,ys(1100));y+=2){const D=y+cam;g.globalAlpha=.09*(1-D/1100);P(x0+(y-S0)*.35,y,9,2,"#ffffff");}}g.globalAlpha=1;}
   if(cam<400&&S0<H){g.globalAlpha=.12;for(let y=Math.max(0,S0+4);y<Math.min(H,S0+120);y+=3)for(let x=0;x<W;x+=12){const o=Math.round(Math.sin((x+y)*.08+t*.002)*4);P(x+o,y,4,1,"#ffffff");}g.globalAlpha=1;}
   for(const m of SEED.motes){if(cam<-20)continue;const y=((m.y-t*m.s*.02-cam*m.k)%900+900)%900;if(y<H)P(m.x+Math.sin(t*.001+m.y)*2,y,1,1,"rgba(224,242,254,.4)");}
-  oceanFar(t);
+  oceanLife(t);oceanDepth(t);oceanFar(t);
   // background rock silhouettes (parallax)
   if(cam>1900){g.globalAlpha=Math.min(.45,(cam-1900)/1500);for(let x=0;x<W;x+=2){const h=40+Math.sin((x+cam*.2)*.02)*24+Math.sin(x*.07)*8;P(x,H-h,2,h,"#020617");}g.globalAlpha=1;}
   for(let y=0;y<H;y++){const D=y+cam;if(D<0)continue;const L=wallW(D,0),R=wallW(D,1),[c,c2]=rockCol(D);
     if(L){P(0,y,L,1,c);P(L-2,y,2,1,c2);if((D|0)%7===0)P(L-7,y,3,1,"rgba(0,0,0,.3)");if((D|0)%11===0)P(L-12,y,2,1,c2);}
     if(R){P(W-R,y,R,1,c);P(W-R,y,2,1,c2);if((D|0)%9===0)P(W-R+4,y,3,1,"rgba(0,0,0,.3)");if((D|0)%13===0)P(W-R+10,y,2,1,c2);}}
+  wallLife(t);
   for(const r of SEED.reef){if(!vis(r.a,24))continue;const y=ys(r.a),w=wallW(r.a,r.side),dir=r.side?-1:1,x=r.side?W-w:w;
     if(r.t===0){for(let k=0;k<r.s+3;k++){P(x+dir*k,y-k,1,1,r.c);P(x+dir*k,y-k+3,1,1,r.c);if(k%2)P(x+dir*(k+1),y-k-1,1,1,r.c);}}
     else if(r.t===1){disc(x+dir*4,y,r.s,r.c);for(let k=-r.s+1;k<r.s;k+=2)P(x+dir*4-r.s+1,y+k,r.s*2-2,1,"rgba(0,0,0,.18)");}
@@ -1098,10 +1111,10 @@ function oceanScene(t){
   if(vis(1300,40)){const x=((t*.006)%(W+160))-80,y=ys(1300);for(let i=0;i<64;i++){const h=Math.round(Math.sin(i/64*3.14)*10);P(x+i,y-h,1,h*2,"#1e3a5f");P(x+i,y+h-2,1,2,"#94a3b8");}P(x-8,y-7,8,4,"#1e3a5f");P(x-8,y+3,8,4,"#1e3a5f");P(x+54,y-2,2,2,"#e2e8f0");}
   if(vis(1520,25)){const x=W-(((t*.012)%(W+50))-25),y=ys(1520)+Math.sin(t*.002)*3,f=Math.round(Math.sin(t*.004)*3);P(x-14,y-f,28,2,"#0f172a");P(x-8,y,16,4,"#1e293b");P(x+8,y+1,8,1,"#0f172a");P(x-2,y+4,1,6,"#0f172a");P(x-6,y+1,12,1,"#334155");}
   if(vis(1660,20)){const x=((t*.018)%(W+60))-30,y=ys(1660);P(x,y,18,4,"#64748b");P(x+5,y-4,4,4,"#64748b");P(x-4,y-2,4,8,"#475569");P(x+15,y+1,1,1,"#e2e8f0");P(x+2,y+4,12,1,"#cbd5e1");}
-  for(const j of SEED.jelly){if(!vis(j.a,24))continue;const x=j.x*W+Math.sin(t*.0007+j.p)*10,y=ys(j.a)+Math.sin(t*.002+j.p)*5,pul=((t/400+j.p)|0)%2;
+  for(const j of SEED.jelly){if(CUP||!vis(j.a,24))continue;const x=j.x*W+Math.sin(t*.0007+j.p)*10,y=ys(j.a)+Math.sin(t*.002+j.p)*5,pul=((t/400+j.p)|0)%2;
     ddisc(x,y,10,j.c,.18);disc(x,y,4+pul,j.c);P(x-4-pul,y,9+pul*2,1,j.c);P(x-1,y-2,2,1,"#ffffff");
     for(let k=-3;k<=3;k+=2)for(let i=1;i<12;i++)P(x+k+Math.round(Math.sin(i*.6+t*.004)),y+1+i,1,1,j.c);}
-  for(const s of SEED.glow){if(!vis(s.a,3))continue;if(((t/350+s.p)|0)%5===0)continue;P(s.x+Math.sin(t*.001+s.p)*3,ys(s.a),1,1,s.c);}
+  for(const s of SEED.glow){if(CUP||!vis(s.a,3))continue;if(((t/350+s.p)|0)%5===0)continue;P(s.x+Math.sin(t*.001+s.p)*3,ys(s.a),1,1,s.c);}
   if(vis(2200,25)){const x=W*.72+Math.sin(t*.001)*12,y=ys(2200);P(x,y,6,14,"#be123c");P(x-2,y+3,10,1,"#e11d48");for(let k=0;k<6;k++)for(let i=0;i<8;i++)P(x+k+Math.round(Math.sin(i+t*.005)),y+14+i,1,1,"#fb7185");P(x+1,y+5,2,2,"#fde68a");}
   if(vis(2720,25)){const x=W*.3+Math.sin(t*.0005)*14,y=ys(2720);disc(x,y,7,"#1f2937");disc(x-1,y-1,6,"#273449");for(let k=0;k<6;k++)P(x+3+k,y+2+(k%2),1,2,"#e5e7eb");P(x-10,y-2,4,5,"#1f2937");
     P(x,y-8,1,1,"#374151");P(x+1,y-9,3,1,"#374151");P(x+4,y-8,1,1,"#374151");const gl=((t/300)|0)%2;ddisc(x+4,y-6,6,"rgba(253,230,138,.6)",.5);disc(x+4,y-6,1+gl,"#fde68a");P(x+3,y-2,1,1,"#e5e7eb");}
@@ -1120,16 +1133,96 @@ function oceanScene(t){
   if(vis(5300,40))blit("wreck",120,60,W*.55,ys(5300),(cx,cy)=>{for(let i=0;i<90;i++){const h=Math.round(Math.sin(i/90*3.14)*13)+3;P(cx-45+i,cy-2,1,h,"#3f2a1d");if(i%6===0)P(cx-45+i,cy-2,1,h,"#2a1c13");}P(cx-45,cy-4,90,3,"#57534e");P(cx-10,cy-38,3,36,"#44403c");P(cx-26,cy-32,32,2,"#44403c");P(cx+18,cy-26,2,24,"#44403c");for(let i=0;i<8;i++)P(cx-38+i*10,cy+3,4,4,"#1c1917");});
   if(vis(6400,40)){const w=wallW(6400,1),x=W-w,y=ys(6400),open=((t/3000)|0)%5!==0;disc(x+8,y,14,"#450a0a");if(open){disc(x+8,y,10,"#fde047");disc(x+8,y,4,"#0c0a09");P(x+5,y-3,2,2,"#ffffff");}else P(x-5,y,26,2,"#7f1d1d");}
   const k0=Math.max(28,Math.floor((cam-200)/150)),k1=Math.floor((cam+H+200)/150);
-  for(let k=k0;k<=k1;k++){const R=rng("oc"+k),a=k*150+R()*70;if(!vis(a,24))continue;const x=W*.2+R()*W*.6,y=ys(a)+Math.sin(t*.002+k)*3,c=["#a5f3fc","#f0abfc","#86efac","#fde68a"][Math.floor(R()*4)];
+  for(let k=k0;k<=k1;k++){const R=rng("oc"+k),a=k*150+R()*70;if(CUP||!vis(a,24))continue;const x=W*.2+R()*W*.6,y=ys(a)+Math.sin(t*.002+k)*3,c=["#a5f3fc","#f0abfc","#86efac","#fde68a"][Math.floor(R()*4)];
     ddisc(x,y,10,c,.25);disc(x,y,3,c);for(let i=0;i<6;i++)P(x-5+i*2,y+4+(i%2),1,5,c);}
 }
 
+// Layered depth for the ocean: two distant canyon walls, drifting silhouettes and marine snow,
+// each moving at its own speed. Cheap enough to run in performance mode (coarser steps there).
+const ridgeCol=D=>D<1100?[8,52,92]:D<2400?[6,30,66]:D<4000?[5,20,50]:D<5800?[8,16,40]:[6,10,32];
+// ---------- Ocean life: glow, light and texture so the deep never looks empty ----------
+const GLOWC=["#67e8f9","#a78bfa","#5eead4","#f0abfc","#93c5fd","#fde68a"];
+function drawGlow(x,y,c,r,a){const key="gl"+c+r;if(!CACHE[key]){const cv=document.createElement("canvas");cv.width=cv.height=r*2+2;const o=g;g=cv.getContext("2d");ddisc(r+1,r+1,r,c,.22);ddisc(r+1,r+1,Math.round(r*.55),c,.45);g=o;CACHE[key]=cv;}
+  g.globalAlpha=a;g.drawImage(CACHE[key],Math.round(x-r-1),Math.round(y-r-1));g.globalAlpha=1;}
+function oceanLife(t){
+  if(cam<60)return;const fade=Math.min(1,(cam-60)/240)*(CUP?.12:1);
+  // soft clouds of coloured water drifting far behind
+  {const k=.18,i0=Math.floor((cam*k-300)/360),i1=Math.floor((cam*k+H+300)/360);
+    for(let i=Math.max(0,i0);i<=i1;i++){const R=rng("wcl"+i),y=ysK(i*360+R()*200,k);if(y<-140||y>H+140)continue;
+      drawGlow(R()*W+Math.sin(t*.0002+i)*20,y,["#0e7490","#4338ca","#0f766e","#6d28d9"][i%4],60,.35*fade);}}
+  // light shafts slanting down from the surface, fading with depth
+  if(cam<3200){const a0=.11*Math.min(1,(3200-cam)/1400)*fade;
+    for(let b=0;b<5;b++){const x0=((b*W/4.5+Math.sin(t*.0003+b)*30)%(W+100))-50,wd=10+(b%3)*8;g.fillStyle="#bae6fd";
+      for(let y=0;y<H;y+=HQ?2:4){const al=a0*(1-y/H*.8)*(.6+.4*Math.sin(t*.001+b+y*.01));if(al<.005)continue;g.globalAlpha=al;g.fillRect(Math.round(x0+y*.28),y,wd,HQ?2:4);}}g.globalAlpha=1;}
+  // distant glowing creatures (slow parallax)
+  {const k=.55,SP=125,i0=Math.floor((cam*k-150)/SP),i1=Math.floor((cam*k+H+150)/SP);
+    for(let i=Math.max(5,i0);i<=i1;i++){const R=rng("dcr"+i),a=i*SP+R()*70,typ=Math.floor(R()*8),c=GLOWC[Math.floor(R()*GLOWC.length)];
+      let x=W*(.08+R()*.84)+Math.sin(t*.0005+i)*16,y=ysK(a,k)+Math.sin(t*.0012+i)*5;if(y<-60||y>H+60)continue;g.globalAlpha=fade;
+      if(typ===6){const v=R()<.5?-1:1,mx=((x+t*v*.01)%(W+120)+W+120)%(W+120)-60,f=Math.sin(t*.003+i)*3;g.globalAlpha=.6*fade;g.fillStyle="#061a33";
+        for(let j=0;j<11;j++){const w=[2,8,14,20,26,30,30,24,16,8,4][j];g.fillRect(mx-w/2,y+j-(j<6?f*(1-j/6):0),w,1);}g.fillRect(mx,y+11,1,14);}
+      else if(typ===7){const v=R()<.5?-1:1,wx=((x+t*v*.008)%(W+200)+W+200)%(W+200)-100;g.globalAlpha=.7*fade;g.fillStyle="#0b2547";
+        for(let j=0;j<70;j++){const h=Math.round(Math.sin(j/70*3.14)*9)+2;g.fillRect(wx+j*v,y-h,1,h*2);}g.fillRect(wx-v*8,y-8,6,6);g.fillRect(wx-v*8,y+3,6,6);
+        for(let j=0;j<14;j++){const px=wx+v*(8+((j*23)%56)),py=y-6+((j*11)%11);g.globalAlpha=.8*fade;P(px,py,1,1,"#e0f2fe");}}
+      else if(typ===0){drawGlow(x,y,c,18,.65*fade);g.globalAlpha=.75*fade;disc(x,y,4,c);P(x-5,y,11,1,c);for(let k2=-3;k2<=3;k2+=2)for(let j=1;j<10;j++)P(x+k2+Math.round(Math.sin(j*.6+t*.004+i)),y+j,1,1,c);}
+      else if(typ===1){for(let j=0;j<22;j++){const px=x+j*2,py=y+Math.sin(j*.4+t*.002+i)*5;if(j%3===0)drawGlow(px,py,c,5,.6*fade);g.globalAlpha=.8*fade;P(px,py,1,1,j%3?c:"#ffffff");}}
+      else if(typ===2){const ph=t*.006;drawGlow(x,y,"#e0f2fe",10,.35*fade);g.globalAlpha=.7*fade;disc(x,y,4,"#e0f2fe");for(let j=-3;j<=3;j++)P(x+j,y-4+((j+3)%2),1,8,`hsl(${(j*50+ph*80)%360},90%,70%)`);}
+      else if(typ===3){const v=R()<.5?-1:1,bx=((x+t*v*.015)%(W+60)+W+60)%(W+60)-30;for(let j=0;j<12;j++){const px=bx+((j*13)%22)-11+Math.sin(t*.004+j)*2,py=y+((j*7)%12)-6;P(px,py,2,1,"#1e293b");P(px+(v>0?2:-1),py,1,1,c);if(HQ&&j%4===0)drawGlow(px,py,c,3,.5*fade);}}
+      else if(typ===4){g.globalAlpha=.55*fade;g.fillStyle="#020617";for(let j=0;j<26;j++){const w=Math.round(Math.sin(j/26*3.14)*5)+1;g.fillRect(x-w,y+j,w*2,1);}for(let k2=-3;k2<=3;k2+=2)for(let j=26;j<44;j++)g.fillRect(x+k2+Math.round(Math.sin(j*.3+t*.003+k2)*1.5),y+j,1,1);
+        const bl=((t/2200+i)|0)%4!==0;if(bl){drawGlow(x-2,y+14,"#fde68a",4,.8*fade);g.globalAlpha=fade;P(x-2,y+14,2,2,"#fef3c7");}}
+      else{drawGlow(x,y,c,8,.5*fade);g.globalAlpha=.9*fade;for(let j=0;j<5;j++){const an=j*1.2566+t*.0008;P(x+Math.cos(an)*4,y+Math.sin(an)*4,2,1,c);}P(x,y,1,1,"#ffffff");}
+      g.globalAlpha=1;}}
+  // bioluminescent plankton: twinkling coloured specks
+  {const k=.85,seg=90,i0=Math.floor((cam*k-20)/seg),i1=Math.floor((cam*k+H+20)/seg),n=HQ?20:10;
+    for(let i=Math.max(2,i0);i<=i1;i++){const R=rng("pk"+i);for(let j=0;j<n;j++){const a=i*seg+R()*seg,x=R()*W+Math.sin(t*.0007+j+i)*4,y=ysK(a,k),c=GLOWC[Math.floor(R()*6)],tw=.5+.5*Math.sin(t*.003*(1+R())+j*1.7);
+      if(y<0||y>H)continue;const deep=Math.min(1,cam/1800);g.globalAlpha=(.35+.65*tw)*deep*fade;P(x,y,tw>.8?2:1,tw>.8?2:1,c);if(tw>.92&&HQ){g.globalAlpha=.3*deep*fade;P(x-1,y,3,1,c);P(x,y-1,1,3,c);}}}g.globalAlpha=1;}
+}
+// Life growing on the canyon walls: coral fans, sponges and anemones up top; glowing anemones,
+// tube worms, glass sponges and crinoids further down.
+function wallLife(t){
+  const seg=34,i0=Math.floor((cam-30)/seg),i1=Math.floor((cam+H+30)/seg);
+  for(let i=Math.max(4,i0);i<=i1;i++){const R=rng("wl"+i),a=i*seg+R()*seg*.6,side=R()<.5?0:1,w=wallW(a,side);if(w<6)continue;
+    const y=ys(a),d=side?-1:1,x=side?W-w:w,typ=Math.floor(R()*5),deep=a>1250,c=deep?GLOWC[Math.floor(R()*6)]:["#f472b6","#fb923c","#c084fc","#facc15","#f87171","#2dd4bf"][Math.floor(R()*6)],s=4+Math.floor(R()*6);
+    if(!deep){
+      if(typ===0){for(let b=0;b<4;b++){const an=-1.2+b*.6;for(let j=0;j<s+2;j++){P(x+d*(1+Math.cos(an)*j*.6+j*.6),y-Math.sin(-an)*0-j+b-2,1,1,c);if(j%3===2)P(x+d*(2+Math.cos(an)*j*.6+j*.6),y-j+b-3,1,1,c);}}}
+      else if(typ===1){for(let k=0;k<3;k++){const h=s+k*2;P(x+d*(1+k*3)-(d<0?2:0),y-h,3,h,c);P(x+d*(1+k*3)-(d<0?2:0),y-h,3,1,"#0f172a");}}
+      else if(typ===2){disc(x+d*3,y,3,c);for(let k=0;k<6;k++)P(x+d*(3+Math.cos(k)*4)+Math.round(Math.sin(t*.004+k)),y-3-k%3,1,3,c);}
+      else if(typ===3){for(let k=0;k<s;k++)P(x+d*(1+k),y-Math.round(Math.sin(k*.8)*2),1,2,c);P(x+d*(s+1),y,2,2,"#ffffff");}
+      else{const sw=Math.round(Math.sin(t*.002+i)*2);for(let k=0;k<s*2;k++)P(x+d*1+sw*k/(s*2),y-k,1,1,"#4d7c0f");}}
+    else{const gl=.35+.25*Math.sin(t*.002+i);
+      if(typ===0){drawGlow(x+d*4,y-3,c,9,gl);disc(x+d*4,y,2,"#1e293b");for(let k=0;k<7;k++){const an=-2.6+k*.35;P(x+d*4+Math.cos(an)*5+Math.round(Math.sin(t*.004+k)),y+Math.sin(an)*5,1,1,c);}}
+      else if(typ===1){for(let k=0;k<3;k++){const h=s+3+k*3,px=x+d*(2+k*3);P(px,y-h,2,h,"#e2e8f0");P(px-1,y-h-2,4,2,"#ef4444");P(px,y-h-3,2,1,"#fca5a5");}}
+      else if(typ===2){g.globalAlpha=.6;for(let k=0;k<s+4;k++)P(x+d*(2+(k%2)),y-k,3,1,"#cffafe");g.globalAlpha=1;P(x+d*2,y-s-5,4,1,"#ecfeff");drawGlow(x+d*3,y-s,"#a5f3fc",6,.25);}
+      else if(typ===3){const sw=Math.round(Math.sin(t*.002+i)*2);for(let k=0;k<s+6;k++)P(x+d*(1+k*.3)+sw*k/(s+6),y-k,1,1,"#94a3b8");for(let k=0;k<8;k++){const an=k*.785+t*.001;P(x+d*(1+(s+6)*.3)+sw+Math.cos(an)*4,y-s-6+Math.sin(an)*3,1,1,c);}}
+      else{for(let k=0;k<5;k++){if(((t/400+k+i)|0)%3===0)continue;P(x+d*(1+k*2),y-(k*3)%7,1,1,c);if(HQ)drawGlow(x+d*(1+k*2),y-(k*3)%7,c,3,.4);}}}}
+}
+function oceanDepth(t){
+  if(cam<40)return;const fade=Math.min(1,(cam-40)/260),st=HQ?2:4;
+  for(const[k,alpha,base,seed]of[[.25,.5,70,1.7],[.55,.65,46,4.1]]){
+    for(let y=0;y<H;y+=st){const D=y+cam*k;if(D<120)continue;
+      const env=Math.min(1,(D-120)/160),[r,gg,b]=ridgeCol(y+cam);
+      for(const side of[0,1]){const n=Math.sin(D*.008+seed+side*3)*base*.45+Math.sin(D*.021+seed*2+side)*base*.2+Math.sin(D*.06+side*5)*5;
+        const w=Math.round((base+n)*env*(k<.4?1.5:1));if(w<=0)continue;
+        g.fillStyle=`rgba(${r},${gg},${b},${(alpha*fade).toFixed(2)})`;g.fillRect(side?W-w:0,y,w,st);
+        if(k>.4&&((D|0)%23<st)){g.fillStyle=`rgba(${r+30},${gg+40},${b+50},${(.25*fade).toFixed(2)})`;g.fillRect(side?W-w:w-2,y,2,st);}}}}
+  // drifting silhouettes in the middle distance: kelp spires, rock arches, a passing whale
+  const k=.7,i0=Math.floor((cam*k-200)/260),i1=Math.floor((cam*k+H+200)/260);
+  for(let i=Math.max(1,i0);i<=i1;i++){const R2=rng("omid"+i),a=i*260+R2()*120,y=ysK(a,k);if(y<-90||y>H+90)continue;
+    const x=W*(.12+R2()*.76),typ=R2(),[r,gg,b]=ridgeCol(a);g.fillStyle=`rgba(${r},${gg},${b},${(.55*fade).toFixed(2)})`;
+    if(typ<.4){const hh=40+R2()*60;for(let yy=0;yy<hh;yy+=st){const sw=Math.round(Math.sin(yy*.06+t*.0012+i)*4*(yy/hh));g.fillRect(x+sw,y-yy,3,st);if(yy%14<st)g.fillRect(x+sw+(yy%28<14?3:-4),y-yy,4,st);}}
+    else if(typ<.7){const w=10+R2()*14;for(let a2=0;a2<3.14;a2+=.06)g.fillRect(x+Math.cos(a2)*w,y-30-Math.sin(a2)*w*.7,4,4);g.fillRect(x-w-2,y-30,5,30);g.fillRect(x+w-2,y-30,5,30);}
+    else{const v=R2()<.5?-1:1,wx=((x+t*v*.012)%(W+160)+W+160)%(W+160)-80;for(let j=0;j<48;j+=st>2?2:1){const hh=Math.round(Math.sin(j/48*3.14)*8);g.fillRect(wx+j*v,y-hh,st>2?2:1,hh*2);}g.fillRect(wx-v*6,y-6,6,4);g.fillRect(wx-v*6,y+3,6,4);}}
+  // marine snow: three depths, three speeds
+  const n=HQ?SEED.motes.length:SEED.motes.length>>1;
+  for(let q=0;q<n;q++){const m=SEED.motes[q],kk=q%3===0?.5:q%3===1?1.1:1.8,sz=q%3===2?2:1,y=((m.y*1.1-t*m.s*.02-cam*kk)%900+900)%900;
+    if(y<H){g.globalAlpha=(q%3===0?.25:q%3===1?.4:.55)*fade;P((m.x*(1+q%3*.31))%W,y,sz,sz,"#e0f2fe");}}
+  g.globalAlpha=1;
+}
 function oceanFar(t){
-  if(!HQ||cam<60)return;const fade=Math.min(1,(cam-60)/300);
+  if(cam<60)return;const fade=Math.min(1,(cam-60)/300);
   const k=.45,i0=Math.floor((cam*k-200)/170),i1=Math.floor((cam*k+H+200)/170);
   for(let i=Math.max(1,i0);i<=i1;i++){const R=rng("ofar"+i),a=i*170+R()*80,x=R()*W,hh=30+R()*70,w=8+R()*16,typ=R();
     const y=ysK(a,k);if(y<-hh-20||y>H+20)continue;const col=a<1100*k?"rgba(10,60,100,.35)":"rgba(2,10,30,.45)";g.globalAlpha=fade;
-    if(typ<.55){for(let yy=0;yy<hh;yy++){const ww=w*(1-yy/hh*.5)+Math.sin(yy*.2+i)*2;P(x-ww/2,y-yy,ww,1,col);}}
+    if(typ<.55){for(let yy=0;yy<hh;yy+=HQ?1:2){const ww=w*(1-yy/hh*.5)+Math.sin(yy*.2+i)*2;P(x-ww/2,y-yy,ww,1,col);}}
     else if(typ<.8){for(let s=0;s<3;s++){const bx=x+s*6-6;for(let yy=0;yy<hh;yy++)P(bx+Math.round(Math.sin(yy*.08+t*.001+s)*3),y-yy,2,1,col);}}
     else{for(let a2=0;a2<3.14;a2+=.03)P(x+Math.cos(a2)*w,y-hh*.6-Math.sin(a2)*w*.8,3,3,col);P(x-w-1,y-hh*.6,3,hh*.6,col);P(x+w-1,y-hh*.6,3,hh*.6,col);}
     g.globalAlpha=1;}
@@ -1142,17 +1235,42 @@ function oceanFar(t){
     g.globalAlpha=1;}
 }
 function oceanNear(t){
-  if(!HQ||cam<0)return;g.globalAlpha=Math.min(.5,cam/500);
+  if(cam<0)return;
+  // foreground: dark rock pillars and kelp fronds sweeping past the edges, faster than everything else
+  const k=1.45,j0=Math.floor((cam*k-200)/520),j1=Math.floor((cam*k+H+200)/520);
+  for(let j=Math.max(1,j0);j<=j1;j++){const R2=rng("ofg"+j),a=j*520+R2()*200,y=ysK(a,k),side=R2()<.5,len=60+R2()*90;if(y<-len-20||y>H+len)continue;
+    if(R2()<.5){const w=14+R2()*18;for(let yy=-len/2;yy<len/2;yy+=HQ?2:4){const ww=w*(1-Math.abs(yy)/(len/2))*1.2+Math.sin(yy*.15)*3;P(side?W-ww:0,y+yy,ww,HQ?2:4,"rgba(1,6,16,.85)");}}
+    else{const bx=side?W-10:8;for(let i=0;i<len;i+=HQ?1:2){const sw=Math.round(Math.sin(i*.05+t*.0018+j)*6);P(bx+sw,y-i+len/2,4,HQ?1:2,"rgba(2,20,12,.85)");if(i%16===0)P(bx+sw+(side?-6:4),y-i+len/2,6,3,"rgba(2,20,12,.85)");}}}
+  if(!HQ)return;g.globalAlpha=Math.min(.5,cam/500);
   for(const m of SEED.motes){const y=((m.y*1.3-t*m.s*.03-cam*1.6)%900+900)%900;if(y<H)P((m.x*1.37)%W,y,2,2,"rgba(224,242,254,.7)");}
   g.globalAlpha=1;
 }
 
 // ---------- Vehicles (skins) ----------
+// Each skin is drawn into a small buffer, then a lighting pass adds a rim highlight on the lit (upper-left)
+// edges, shade on the far edges and a soft gradient across the body, so every skin reads as 3D pixel art.
+const VB={c:null,x:null,S:128};
+function drawVehicle(id,cx,cy,t,moving,pv){
+  if(id==="sphere"&&!pv){P(cx,0,1,cy-11,"#475569");P(cx+1,0,1,cy-11,"#1e293b");}
+  if(!VB.c){VB.c=document.createElement("canvas");VB.c.width=VB.c.height=VB.S;VB.x=VB.c.getContext("2d",{willReadFrequently:true});}
+  const S=VB.S,ox=S>>1,oy=TH.up?S-44:S>>1,o=g;g=VB.x;g.clearRect(0,0,S,S);
+  try{drawVehicleRaw(id,ox,oy,t,moving,pv);}finally{g=o;}
+  const im=VB.x.getImageData(0,0,S,S),d=im.data,src=new Uint8ClampedArray(d);
+  let minx=S,maxx=0;for(let y=0;y<S;y+=2)for(let x=0;x<S;x++)if(src[(y*S+x)*4+3]>200){if(x<minx)minx=x;if(x>maxx)maxx=x;}
+  const mid=(minx+maxx)/2,half=Math.max(4,(maxx-minx)/2);
+  const solid=(x,y)=>{if(x<0||y<0||x>=S||y>=S)return false;const i=(y*S+x)*4;return src[i+3]>200&&(src[i]+src[i+1]+src[i+2])>90;};
+  for(let y=1;y<S-1;y++)for(let x=1;x<S-1;x++){const i=(y*S+x)*4;if(src[i+3]<=200)continue;const lum=src[i]+src[i+1]+src[i+2];if(lum<=90)continue;
+    let f=1;if(!solid(x-1,y)||!solid(x,y-1))f=1.22;else if(!solid(x+1,y)||!solid(x,y+1))f=.78;
+    else{const k=(x-mid)/half;f=1-Math.max(-.12,Math.min(.16,k*.14));if(k>.35&&((x+y)&1))f-=.06;}
+    if(f>1){d[i]=src[i]+(255-src[i])*(f-1);d[i+1]=src[i+1]+(255-src[i+1])*(f-1);d[i+2]=src[i+2]+(255-src[i+2])*(f-1);}
+    else{d[i]=src[i]*f;d[i+1]=src[i+1]*f;d[i+2]=src[i+2]*f;}}
+  VB.x.putImageData(im,0,0);g.drawImage(VB.c,Math.round(cx-ox),Math.round(cy-oy));
+}
 const OUT="#0b1020";
 function shape(parts){for(const p of parts){if(p[0]==="r")P(p[1]-1,p[2]-1,p[3]+2,p[4]+2,OUT);else disc(p[1],p[2],p[3]+1,OUT);}
   for(const p of parts){if(p[0]==="r")P(p[1],p[2],p[3],p[4],p[5]);else disc(p[1],p[2],p[3],p[4]);}}
 function flame(x,y,w,L,dir){for(let i=0;i<L;i++){const ww=Math.max(1,Math.round(w*(1-i/L*.7))),c=i<2?"#fffbe6":i<L*.35?"#fde047":i<L*.7?"#fb923c":"#ef4444";P(x-Math.floor(ww/2),y+i*dir,ww,1,c);}}
-function drawVehicle(id,cx,cy,t,moving,pv){
+function drawVehicleRaw(id,cx,cy,t,moving,pv){
   const L=moving?10+Math.random()*7:(SC.alt>1||pv?5+Math.random()*3:0),by=cy;
   if(id==="rocket"){if(L)flame(cx,by-3,6,L,1);
     shape([["r",cx-5,by-27,10,21,"#f8fafc"],["r",cx-4,by-30,8,3,"#ef4444"],["r",cx-3,by-32,6,2,"#ef4444"],["r",cx-1,by-34,2,2,"#ef4444"],["r",cx-9,by-11,4,8,"#ef4444"],["r",cx+5,by-11,4,8,"#b91c1c"],["r",cx-3,by-6,6,3,"#64748b"]]);
@@ -1190,7 +1308,7 @@ function drawVehicle(id,cx,cy,t,moving,pv){
     shape([["r",cx-14,cy-5,22,10,"#94a3b8"],["d",cx+8,cy,5,"#94a3b8"],["r",cx-21,cy-6+f,6,4,"#94a3b8"],["r",cx-21,cy+2-f,6,4,"#94a3b8"],["r",cx-4,cy+5,4,2,"#94a3b8"]]);
     P(cx-14,cy+2,22,3,"#e2e8f0");disc(cx+8,cy+2,3,"#e2e8f0");for(let i=0;i<12;i++)P(cx+13+i,cy-1,1,1,i%3?"#f8fafc":"#cbd5e1");P(cx+8,cy-2,1,1,OUT);
     for(const[ox,oy]of[[-10,-3],[-6,-2],[-2,-4],[2,-2],[-12,0]])P(cx+ox,cy+oy,1,1,"#64748b");}
-  else if(id==="sphere"){if(!pv){P(cx,0,1,cy-11,"#475569");P(cx+1,0,1,cy-11,"#1e293b");}
+  else if(id==="sphere"){
     shape([["d",cx,cy,11,"#94a3b8"],["r",cx-2,cy-15,4,4,"#64748b"]]);
     ddisc(cx+3,cy+3,10,"rgba(30,41,59,.55)",.5);disc(cx-3,cy-3,3,"#cbd5e1");for(let a=0;a<6.283;a+=.52)P(cx+Math.cos(a)*9,cy+Math.sin(a)*9,1,1,"#475569");
     disc(cx+3,cy+1,4,OUT);disc(cx+3,cy+1,3,"#fde68a");P(cx+2,cy,1,1,"#ffffff");if(SC.alt>1600||pv){g.globalAlpha=.1;for(let i=0;i<40;i++){const h=Math.round(i*.5);P(cx+8+i,cy+1-h/2,1,h+1,"#fde68a");}g.globalAlpha=1;}}
@@ -1213,6 +1331,62 @@ function drawVehicle(id,cx,cy,t,moving,pv){
     for(const[r,w]of rows){const y=cy-5+r+(r<5?0:0),wy=r<6?-f*(1-r/6):0;P(cx-w/2-1,y+wy,w+2,1,OUT);}
     for(const[r,w]of rows){const y=cy-5+r,wy=r<6?-f*(1-r/6):0;P(cx-w/2,y+wy,w,1,r<3?"#94a3b8":r<6?"#64748b":"#475569");if(r>3&&r<8){P(cx-w/2,y+wy,3,1,"#334155");P(cx+w/2-3,y+wy,3,1,"#334155");}}
     P(cx-3,cy-6,2,3,"#1e293b");P(cx+1,cy-6,2,3,"#1e293b");P(cx-6,cy+1,12,2,"#e2e8f0");for(let i=0;i<14;i++)P(cx,cy+6+i,1,1,"#64748b");P(cx-2,cy-3,1,1,"#e2e8f0");P(cx+1,cy-3,1,1,"#e2e8f0");}
+  // ---- new space skins ----
+  else if(id==="fighter"){if(L){flame(cx-4,by-5,2,L*.8,1);flame(cx+4,by-5,2,L*.8,1);}
+    shape([["r",cx-12,by-13,24,3,"#94a3b8"],["r",cx-14,by-19,3,11,"#e2e8f0"],["r",cx+11,by-19,3,11,"#e2e8f0"],["r",cx-6,by-10,4,6,"#64748b"],["r",cx+2,by-10,4,6,"#64748b"],
+      ["r",cx-3,by-31,6,25,"#f1f5f9"],["r",cx-2,by-35,4,4,"#f1f5f9"],["r",cx-1,by-37,2,2,"#cbd5e1"]]);
+    P(cx-3,by-31,2,25,"#ffffff");P(cx+1,by-31,2,25,"#cbd5e1");P(cx-14,by-19,3,2,"#f97316");P(cx+11,by-19,3,2,"#f97316");P(cx-12,by-13,24,1,"#cbd5e1");P(cx-12,by-11,24,1,"#64748b");
+    P(cx-2,by-27,4,6,OUT);P(cx-1,by-26,2,4,"#38bdf8");P(cx-1,by-26,1,1,"#e0f2fe");P(cx-3,by-18,6,1,"#f97316");P(cx-3,by-16,6,1,"#f97316");
+    P(cx-10,by-12,2,1,"#f97316");P(cx+8,by-12,2,1,"#f97316");if(((t/300)|0)%2){P(cx-14,by-20,1,1,"#ef4444");P(cx+13,by-20,1,1,"#22c55e");}}
+  else if(id==="sat"){const by2=by-16;if(L)flame(cx,by2+9,3,L*.5,1);
+    for(const d of[-1,1]){const x0=d<0?cx-24:cx+8;shape([["r",x0,by2-5,16,9,"#1e3a8a"]]);
+      for(let k=0;k<16;k+=4)P(x0+k,by2-5,1,9,"#3b82f6");P(x0,by2-1,16,1,"#60a5fa");P(x0+1,by2-4,2,1,"#93c5fd");P(d<0?cx-8:cx+6,by2-1,2,2,"#94a3b8");}
+    shape([["r",cx-6,by2-7,12,14,"#fbbf24"],["d",cx,by2-12,6,"#e5e7eb"]]);
+    disc(cx,by2-12,4,"#cbd5e1");disc(cx,by2-12,2,"#94a3b8");P(cx,by2-20,1,6,"#94a3b8");if(((t/400)|0)%2)P(cx,by2-21,1,1,"#ef4444");
+    for(let k=0;k<6;k++)P(cx-5+(k*3)%10,by2-5+k*2,2,1,"#fde68a");P(cx+3,by2-7,3,14,"#d97706");P(cx-6,by2+5,12,2,"#b45309");}
+  else if(id==="phoenix"){const f=Math.round(Math.sin(t*.012)*4),by2=by-14;
+    for(let i=0;i<(moving?24:14);i++){const w=Math.max(1,Math.round(7*(1-i/24)));g.globalAlpha=1-i/26;P(cx-Math.floor(w/2)+Math.round(Math.sin(i*.5+t*.01)*1.5),by2+6+i,w,1,i<4?"#fde047":i<10?"#fb923c":"#ef4444");}g.globalAlpha=1;
+    for(const d of[-1,1])for(let i=0;i<13;i++){const y=by2-4-Math.round(f*i/12)+Math.round(i*.35),c=i<4?"#fb923c":i<9?"#f97316":"#dc2626";
+      P(cx+d*(4+i)-(d<0?1:0),y-1,1,7-Math.floor(i/3),OUT);P(cx+d*(4+i)-(d<0?1:0),y,1,5-Math.floor(i/3),c);if(i%3===0)P(cx+d*(4+i)-(d<0?1:0),y,1,1,"#fde047");}
+    shape([["d",cx,by2-2,5,"#f97316"],["d",cx,by2-10,3,"#fb923c"],["r",cx-1,by2-15,2,2,"#fde047"]]);
+    disc(cx,by2-1,3,"#fdba74");P(cx-2,by2-11,1,1,OUT);P(cx+1,by2-11,1,1,OUT);P(cx-1,by2-17,1,3,"#fde047");P(cx+1,by2-18,1,3,"#ef4444");P(cx-3,by2-16,1,2,"#ef4444");}
+  else if(id==="cupid"){if(L)flame(cx,by-4,4,L,1);const by2=by-14,beat=((t/450)|0)%3===0?1:0;
+    for(const d of[-1,1]){const fl=Math.round(Math.sin(t*.015)*2);shape([["r",cx+d*10-(d<0?5:0),by2-6-fl,5,3,"#f8fafc"],["r",cx+d*9-(d<0?4:0),by2-3-fl,4,2,"#f8fafc"]]);P(cx+d*10-(d<0?5:0),by2-6-fl,5,1,"#ffffff");}
+    const hr=4+beat;
+    shape([["d",cx-3,by2-5,hr,"#f472b6"],["d",cx+3,by2-5,hr,"#f472b6"]]);
+    for(let i=0;i<8+beat;i++){const w=16+beat*2-i*2;if(w<=0)break;P(cx-w/2-1,by2-3+i,w+2,1,OUT);}
+    for(let i=0;i<8+beat;i++){const w=16+beat*2-i*2;if(w<=0)break;P(cx-w/2,by2-3+i,w,1,i>4?"#db2777":"#f472b6");}
+    disc(cx-3,by2-5,hr-1,"#f472b6");disc(cx+3,by2-5,hr-1,"#f472b6");P(cx-5,by2-8,2,2,"#fce7f3");P(cx-6,by2-6,1,2,"#fbcfe8");
+    P(cx-2,by2-4,1,2,"#fdf2f8");P(cx+1,by2-4,1,2,"#fdf2f8");P(cx-1,by2-1,2,1,"#9d174d");
+    if(HQ||pv)for(let i=0;i<3;i++){const a=t*.003+i*2.1;P(cx+Math.cos(a)*14,by2-4+Math.sin(a)*8,1,1,"#fbcfe8");}}
+  // ---- new ocean skins ----
+  else if(id==="shark"){const f=Math.round(Math.sin(t*.008)*3);
+    shape([["r",cx-13,cy-4,24,9,"#64748b"],["d",cx+11,cy,4,"#64748b"],["r",cx-2,cy-9,4,5,"#64748b"],["r",cx-21,cy-7+f,7,4,"#64748b"],["r",cx-21,cy+2-f,6,4,"#64748b"],["r",cx-16,cy-2,4,4,"#64748b"],["r",cx-2,cy+5,5,3,"#64748b"]]);
+    P(cx-1,cy-11,3,2,"#64748b");P(cx-13,cy-4,24,1,"#94a3b8");P(cx-12,cy+2,23,3,"#e2e8f0");disc(cx+11,cy+2,2,"#e2e8f0");
+    P(cx+10,cy-2,2,2,OUT);P(cx+10,cy-2,1,1,"#ffffff");for(let k=0;k<3;k++)P(cx+4+k*2,cy-1,1,3,"#475569");
+    P(cx+8,cy+3,6,1,"#475569");for(let k=0;k<3;k++)P(cx+9+k*2,cy+4,1,1,"#ffffff");P(cx-12,cy-3,10,1,"#475569");}
+  else if(id==="octo"){const hx=cx+5;
+    for(let k=0;k<5;k++)for(let i=0;i<16;i++){const y=cy-4+k*2+Math.round(Math.sin(i*.45+t*.008+k*1.3)*(1+i*.12)),x=hx-6-i;P(x,y-1,1,4-Math.floor(i/6),OUT);}
+    for(let k=0;k<5;k++)for(let i=0;i<16;i++){const y=cy-4+k*2+Math.round(Math.sin(i*.45+t*.008+k*1.3)*(1+i*.12)),x=hx-6-i;P(x,y,1,2-Math.floor(i/9),i%4===1?"#fda4af":"#e11d48");}
+    shape([["d",hx,cy-2,8,"#f43f5e"],["r",hx-6,cy+2,11,5,"#f43f5e"]]);
+    disc(hx-1,cy-4,6,"#fb7185");P(hx-4,cy-8,3,2,"#fecdd3");for(const[ox,oy]of[[2,-6],[-2,-1],[4,-1]])P(hx+ox,cy+oy,1,1,"#be123c");
+    for(const ex of[0,5]){disc(hx+ex,cy-1,2,"#ffffff");P(hx+ex+1,cy-1,2,2,OUT);P(hx+ex,cy-2,1,1,"#ffffff");}P(hx+3,cy+3,3,1,"#9f1239");}
+  else if(id==="angler"){const gl=((t/250)|0)%2,lx=cx+15,ly=cy-13+Math.round(Math.sin(t*.004));
+    ddisc(lx,ly,9,"rgba(253,224,71,.55)",.35);
+    for(let i=0;i<14;i++){const a=i/13;P(cx+2+a*13,cy-9-Math.sin(a*3.14)*6+a*(-4),1,1,"#57534e");}
+    disc(lx,ly,2+gl,"#fef08a");P(lx,ly,1,1,"#ffffff");
+    shape([["d",cx,cy,9,"#44403c"],["r",cx-17,cy-5,6,10,"#44403c"],["r",cx-11,cy-2,4,5,"#44403c"],["r",cx-4,cy-11,5,3,"#44403c"]]);
+    disc(cx-1,cy+1,7,"#57534e");P(cx-6,cy-6,4,1,"#78716c");P(cx-17,cy-5,6,1,"#57534e");
+    P(cx+2,cy+2,9,4,"#1c1917");for(let k=0;k<4;k++){P(cx+3+k*2,cy+2,1,2,"#f5f5f4");P(cx+4+k*2,cy+4,1,2,"#f5f5f4");}
+    disc(cx+3,cy-3,3,"#fef3c7");disc(cx+4,cy-3,2,OUT);P(cx+3,cy-4,1,1,"#ffffff");for(let k=0;k<5;k++)P(cx-8+k*3,cy+7-(k%2),1,1,"#a8a29e");}
+  else if(id==="seahorse"){const f=((t/120)|0)%2,bob=Math.round(Math.sin(t*.004)*1);
+    const path=[[0,-12,4],[1,-8,4],[0,-4,4],[-1,0,4],[-1,4,3],[0,7,3],[2,9,2],[4,9,2],[5,7,2],[4,5,1]];
+    for(const[ox,oy,r]of path)disc(cx+ox,cy+oy+bob,r+1,OUT);for(const[ox,oy,r]of path)disc(cx+ox,cy+oy+bob,r,"#f59e0b");
+    shape([["r",cx+3,cy-14+bob,7,3,"#f59e0b"],["r",cx-1,cy-19+bob,3,4,"#f59e0b"]]);
+    disc(cx,cy-12+bob,4,"#f59e0b");for(let k=-10;k<5;k+=3)P(cx-1,cy+k+bob,3,1,"#d97706");P(cx-2,cy-15+bob,2,2,"#fde68a");P(cx-2,cy-6+bob,2,6,"#fcd34d");
+    P(cx+1,cy-13+bob,2,2,"#ffffff");P(cx+2,cy-13+bob,1,1,OUT);P(cx+9,cy-14+bob,1,3,"#b45309");
+    for(let i=0;i<5;i++)P(cx-4-(i%2===f?1:0),cy-5+i*2+bob,2,1,"#fde68a");P(cx-5,cy-6+bob,1,10,"#fef3c7");}
+
   else if(id==="puffer"){const f=((t/150)|0)%2;
     for(let a=0;a<6.283;a+=.45)P(cx+Math.cos(a)*10,cy+Math.sin(a)*10,1,1,"#a16207");
     shape([["d",cx,cy,8,"#facc15"],["r",cx-14,cy-3,4,6,"#fbbf24"]]);
@@ -1222,9 +1396,9 @@ function drawVehicle(id,cx,cy,t,moving,pv){
 const skinId=()=>{const s=store.get("otc.skin."+THEME,TH.skins[0].id);return TH.skins.some(k=>k.id===s)?s:TH.skins[0].id;};
 
 // ---------- particles / loop ----------
-function spawn(n,col,speed,life,size,off){const id=skinId();for(let i=0;i<n;i++)SC.parts.push({x:W/2+(off||0)+(Math.random()-.5)*5,a:SC.alt+(TH.up?-3:0),vx:(Math.random()-.5)*speed,va:-Math.random()*speed*.8-(TH.up?0:.3),life,max:life,c:col[Math.floor(Math.random()*col.length)],r:size});}
+function spawn(n,col,speed,life,size,off){const id=skinId();for(let i=0;i<n;i++)SC.parts.push({x:(VX||W/2)+(off||0)+(Math.random()-.5)*5,a:SC.alt+(TH.up?-3:0),vx:(Math.random()-.5)*speed,va:-Math.random()*speed*.8-(TH.up?0:.3),life,max:life,c:col[Math.floor(Math.random()*col.length)],r:size});}
 function burst(n=50){for(let i=0;i<n;i++){const a=Math.random()*6.283,s=.8+Math.random()*2.2;
-  SC.parts.push({x:W/2,a:SC.alt+(TH.up?14:0),vx:Math.cos(a)*s,va:Math.sin(a)*s,life:70,max:70,c:["#fde047","#f472b6","#67e8f9","#c4b5fd","#ffffff"][i%5],r:0,spark:1});}}
+  SC.parts.push({x:VX||W/2,a:SC.alt+(TH.up?14:0),vx:Math.cos(a)*s,va:Math.sin(a)*s,life:70,max:70,c:["#fde047","#f472b6","#67e8f9","#c4b5fd","#ffffff"][i%5],r:0,spark:1});}}
 function drawParts(){
   for(const p of SC.parts){p.x+=p.vx;p.a+=p.va;p.life--;if(!p.spark){p.vx*=.96;if(TH.up)p.va*=.95;}
     g.globalAlpha=Math.max(0,p.life/p.max);if(p.spark){P(p.x,ys(p.a),2,2,p.c);}else if(TH.up)disc(p.x,ys(p.a),p.r+(1-p.life/p.max)*4,p.c);else{P(p.x,ys(p.a),2,2,p.c);P(p.x,ys(p.a),1,1,"#ffffff");}}
@@ -1257,7 +1431,8 @@ function frame(t){
   const prev=SC.alt;
   if(FL.dur){const k=Math.min(1,(performance.now()-FL.t0)/FL.dur);SC.alt=FL.from+(FL.to-FL.from)*ease(k);if(k>=1)FL.dur=0;}
   speed=SC.alt-prev;const moving=Math.abs(speed)>.3;
-  const vt=Math.round(H*(MENU?.8:.27));if(VY!==vt)VY+=Math.sign(vt-VY)*Math.max(1,Math.round(Math.abs(vt-VY)*.12));
+  if(CUP)cupTick(t);
+  const vt=Math.round(H*(CUP?(TH.up?.78:.3):MENU?.8:.27));if(VY!==vt)VY+=Math.sign(vt-VY)*Math.max(1,Math.round(Math.abs(vt-VY)*.12));
   cam+=(camTarget()-cam)*.25;
   let sx=0,sy=0;if(SC.shake>0){SC.shake-=16;sx=(Math.random()-.5)*3;sy=(Math.random()-.5)*3;}
   g.save();g.translate(Math.round(sx),Math.round(sy));
@@ -1265,10 +1440,12 @@ function frame(t){
   if(TH.up){spaceNear(t);for(const c of SEED.clouds)if(!c.far&&c.s>9&&visK(c.a,1.5,40)){g.globalAlpha=.35;cloud(((c.x*W*1.7+t*c.v*.02)%(W+120))-60,ysK(c.a,1.5),c.s*1.4,"#ffffff","#e2ecfb");g.globalAlpha=1;}}
   else oceanNear(t);
   speedLines(t);vignette();
-  const vx=W/2,vy=Math.round(ys(SC.alt));
+  if(CUP&&TH.up)speed=Math.max(speed,1);
+  const vx=CUP?Math.round(CUP.x):W/2,vy=Math.round(ys(SC.alt));VX=vx;
   if(TH.up){if(HQ)ddisc(vx,vy-16,26,"rgba(255,255,255,.22)",.4);if(moving&&speed>0)spawn(3,["#e5e7eb","#cbd5e1","#f8fafc"],.7,46,1);else if(SC.alt<1&&Math.random()<.08)spawn(1,["#f1f5f9"],.9,55,1);}
   else{if(HQ)ddisc(vx,vy,24,"rgba(224,242,254,.2)",.4);if((moving&&speed>0)||Math.random()<.1)spawn(1,["#e0f2fe","#bae6fd"],.5,80,1,-12);}
-  drawParts();drawVehicle(skinId(),vx,vy,t,moving&&speed>0,false);
+  drawParts();if(CUP)cupDraw(t);
+  if(!(CUP&&CUP.hurt&&performance.now()-CUP.hurt<900&&((t/80)|0)%2))drawVehicle(skinId(),vx,vy,t,(moving&&speed>0)||!!CUP,false);
   g.restore();
   hudTick();
   if(PERF==="auto"&&HQ&&performance.now()-t0>14)slowFrames+=2;
@@ -1488,12 +1665,14 @@ function wikiEntry(p,text,w){
 async function smartJudge(p,text){
   const w=canWiki(p)?await wikiLook(p,text):null;
   if(aiReady()){
-    const r=await judgeAI(p,text,false,w);
+    let r=await judgeAI(p,text,false,w);if(r&&r.error==="unreadable reply")r=await judgeAI(p,text,true,w);
     if(r&&r.display){if(r.ai&&w&&w.fit&&w.tier!=null&&!r._wr){r.tier=w.tier;r._wr=1;learn(p,r);}return r;}
     if(r&&r.error&&w&&w.fit)return wikiEntry(p,text,w);
+    if(r&&r.error&&w&&!w.fit)return{invalid:true,why:"AI unavailable ("+r.error+") and not found on Wikipedia"};
     return r;
   }
   if(w&&w.fit)return wikiEntry(p,text,w);
+  if(!canWiki(p))return{invalid:true,why:"not on the list"};
   return w?{invalid:true,why:"no matching Wikipedia article"}:{error:"couldn't reach Wikipedia"};
 }
 const judgeLabel=()=>aiReady()?"AI CHECK ON":wikiOn()?"WIKIPEDIA CHECK ON":"";
@@ -1518,11 +1697,19 @@ function applyAI(p,text,res){
   if(known){const k=norm(text);if(k&&!known.keys.includes(k)){known.keys.push(k);learn(p,{display:known.display,tier:known.tier,keys:[k]});}p._cx=null;return known;}
   const e={display:res.name.toLowerCase(),tier:res.tier,keys:[norm(text),norm(res.name)].filter(Boolean),ai:true};buildIndex(p).push(e);p._cx=null;return learn(p,e);
 }
+// Reads the AI's verdict even when the reply isn't clean JSON (code fences, extra words, cut-off endings).
+function parseVerdict(txt){
+  const t=String(txt||"").replace(/```(?:json)?/gi,"");
+  for(const m of [t.match(/\{[\s\S]*\}/),t.match(/\{[\s\S]*?\}/)])if(m){try{return tidy(JSON.parse(m[0]));}catch(e){}}
+  const v=t.match(/"?valid"?\s*[:=]\s*(true|false)/i);if(!v)return null;
+  const nm=t.match(/"?name"?\s*[:=]\s*"([^"]{1,60})"/i),tr=t.match(/"?tier"?\s*[:=]\s*(\d)/i),wh=t.match(/"?why"?\s*[:=]\s*"([^"]{0,140})/i);
+  return tidy({valid:v[1].toLowerCase()==="true",name:nm?nm[1]:"",tier:tr?+tr[1]:2,why:wh?wh[1]:""});
+}
 const tidy=v=>({valid:!!(v&&v.valid),name:String((v&&v.name)||"").slice(0,40),tier:Math.max(0,Math.min(4,parseInt(v&&v.tier)||0)),why:String((v&&v.why)||"").slice(0,120)});
 async function judgeAI(p,text,noCache,w){
   const cfg=aiCfg(),ck=p.q+"|"+norm(text),cache=store.get("oddball.aicache",{});
   if(!noCache&&cache[ck])return applyAI(p,text,cache[ck]);
-  const ex=p.t.slice(0,5).map((s,i)=>`${i}: ${shuffle(s.split("|").map(x=>x.split("/")[0]),rng("c"+i+p.q)).slice(0,6).join(", ")}`).join("\n");
+  const ex=p.t.slice(0,5).map((s,i)=>`${i}: ${shuffle(s.split("|").filter(Boolean).map(x=>x.split("/")[0]),rng("c"+i+p.q)).slice(0,4).join(", ")}`).join("\n");
   const ask=`Prompt: ${p.q}\nExamples by tier:\n${ex}\nPlayer answer: ${JSON.stringify(text)}${w&&w.fit?`\nWikipedia has a matching article: "${w.title}".`:w?"\nNo matching Wikipedia article was found (it can still be valid: fiction, slang, literal answers).":""}`;
   let res;
   if(SAMPLE){
@@ -1531,15 +1718,14 @@ async function judgeAI(p,text,noCache,w){
     catch(e){const c=e&&e.code;if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared"||c==="capability_disabled"){sampleDenied=true;return{error:"Claude access wasn't allowed"};}
       return{error:c==="rate_limited"?"too many checks, slow down":c==="session_expired"?"sign in to Claude again":"couldn't reach Claude"};}
   }else{
-    const kk=cfg.key||BUILTIN_GEMINI_KEY;if(!kk.startsWith("sk-ant")){const r=kk.startsWith("gsk_")?await oaJudge("https://api.groq.com/openai/v1",kk,ask,["llama-3.3-70b-versatile","llama-3.1-8b-instant","openai/gpt-oss-20b"],true):kk.startsWith("sk-or-")?await oaJudge("https://openrouter.ai/api/v1",kk,ask,["meta-llama/llama-3.3-70b-instruct:free"],false):await geminiJudge(kk,ask);if(r.error)return r;res=r;if(!res.name)res.name=text;}
+    const kk=cfg.key||BUILTIN_GEMINI_KEY;if(!kk.startsWith("sk-ant")){const r=kk.startsWith("gsk_")?await oaJudge("https://api.groq.com/openai/v1",kk,ask,["llama-3.3-70b-versatile","meta-llama/llama-4-scout-17b-16e-instruct","llama-3.1-8b-instant","qwen/qwen3-32b","openai/gpt-oss-20b","openai/gpt-oss-120b"],true):kk.startsWith("sk-or-")?await oaJudge("https://openrouter.ai/api/v1",kk,ask,["meta-llama/llama-3.3-70b-instruct:free"],false):await geminiJudge(kk,ask);if(r.error)return r;res=r;if(!res.name)res.name=text;}
     else{
     const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
     try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ctl.signal,
         headers:{"content-type":"application/json","x-api-key":cfg.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
         body:JSON.stringify({model:cfg.model,max_tokens:200,system:AI_RULES,messages:[{role:"user",content:ask}]})});
       const j=await r.json().catch(()=>({}));if(!r.ok)return{error:(j.error&&j.error.message)||("HTTP "+r.status)};
-      const m=(j.content||[]).map(c=>c.text||"").join("").match(/\{[\s\S]*\}/);if(!m)return{error:"unreadable reply"};
-      res=tidy(JSON.parse(m[0]));if(!res.name)res.name=text;
+      res=parseVerdict((j.content||[]).map(c=>c.text||"").join(""));if(!res)return{error:"unreadable reply"};if(!res.name)res.name=text;
     }catch(e){return{error:e.name==="AbortError"?"timed out":"network error"};}finally{clearTimeout(to);}
     }
   }
@@ -1559,45 +1745,53 @@ async function geminiJudge(key,ask){
     try{
       const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+t.m+":generateContent"+auth.q,{method:"POST",signal:ctl.signal,
         headers:Object.assign({"content-type":"application/json"},auth.h),
-        body:JSON.stringify({contents:[{role:"user",parts:[{text:AI_RULES+"\n\n"+ask}]}],generationConfig:{responseMimeType:"application/json",temperature:0,maxOutputTokens:300}})});
+        body:JSON.stringify({contents:[{role:"user",parts:[{text:AI_RULES+"\n\n"+ask}]}],generationConfig:{responseMimeType:"application/json",temperature:0,maxOutputTokens:2000}})});
       const j=await r.json().catch(()=>({}));
       if(r.status===404){lastErr="model not found";continue;}
       if(r.status===401||r.status===403){lastErr="Google rejected the key ("+r.status+")";continue;}
       if(!r.ok){const msg=(j.error&&j.error.message)||("HTTP "+r.status);return{error:r.status===429?"free AI limit reached, try later":msg.slice(0,90)};}
       const out=((((j.candidates||[])[0]||{}).content||{}).parts||[]).map(p=>p.text||"").join("");
-      const m=out.match(/\{[\s\S]*\}/);if(!m)return{error:"unreadable reply"};
-      GEMINI_OK=t;return tidy(JSON.parse(m[0]));
+      const v=parseVerdict(out);if(!v){lastErr="unreadable reply";continue;}
+      GEMINI_OK=t;return v;
     }catch(e){if(e.name==="AbortError")lastErr="timed out";else if(!/rejected/.test(lastErr))lastErr=location.protocol==="file:"||navigator.onLine?"couldn't reach Google (blocked or offline)":"you're offline";}finally{clearTimeout(to);}
   }
   return{error:lastErr};
 }
 // OpenAI-style services (Groq, OpenRouter): pick an available model once, then ask for JSON.
-const OA_MODEL={};
+const OA_MODEL={},OA_IDS={},OA_COOL={};
+// Each model on a free plan has its own daily limit, so when one runs out we switch to the next.
+function oaPick(base,prefer){const ids=OA_IDS[base]||[],now=Date.now(),ok=m=>!(OA_COOL[m]>now);
+  const chat=ids.filter(i=>/llama|gpt-oss|qwen|gemma|mistral|kimi|deepseek|compound/i.test(i)&&!/guard|whisper|tts|embed|prompt/i.test(i));
+  return prefer.find(p=>ids.includes(p)&&ok(p))||chat.find(i=>/:free$/.test(i)&&ok(i))||chat.find(ok)||null;}
 async function oaJudge(base,key,ask,prefer,jsonMode){
   const h={"content-type":"application/json","authorization":"Bearer "+key};
-  let model=OA_MODEL[base];
-  if(!model){try{const r=await fetch(base+"/models",{headers:h});if(r.status===401)return{error:"key rejected"};const j=await r.json();const ids=(j.data||[]).map(m=>m.id);
-      model=prefer.find(p=>ids.includes(p))||ids.find(i=>/:free$/.test(i)&&/llama|gpt-oss|qwen|gemma|mistral/i.test(i))||ids.find(i=>/llama|gpt-oss|qwen|gemma|mistral/i.test(i))||ids[0];}
-    catch(e){return{error:"couldn't reach the AI service (blocked or offline)"};}
-    if(!model)return{error:"no model available"};OA_MODEL[base]=model;}
-  // Try strict JSON mode first; if the service rejects the format, salvage its draft or retry in plain mode.
-  const grab=s=>{const m=String(s||"").match(/\{[\s\S]*?\}/);if(!m)return null;try{return tidy(JSON.parse(m[0]));}catch(e){return null;}};
-  for(const strict of jsonMode?[true,false]:[false]){
-    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
-    try{const body={model,temperature:0,max_tokens:400,messages:[{role:"system",content:AI_RULES},{role:"user",content:ask+" Respond with one JSON object only."}]};if(strict)body.response_format={type:"json_object"};
-      const r=await fetch(base+"/chat/completions",{method:"POST",signal:ctl.signal,headers:h,body:JSON.stringify(body)});
-      const j=await r.json().catch(()=>({}));
-      if(!r.ok){if(r.status===401)return{error:"key rejected"};if(r.status===429)return{error:"free AI limit reached, try later"};
-        const fg=grab(j.error&&j.error.failed_generation);if(fg)return fg;if(strict)continue;return{error:((j.error&&j.error.message)||("HTTP "+r.status)).slice(0,90)};}
-      const v=grab((((j.choices||[])[0]||{}).message||{}).content);if(v)return v;if(strict)continue;return{error:"unreadable reply"};
-    }catch(e){return{error:e.name==="AbortError"?"timed out":"couldn't reach the AI service (blocked or offline)"};}finally{clearTimeout(to);}
+  if(!OA_IDS[base]){try{const r=await fetch(base+"/models",{headers:h});if(r.status===401)return{error:"key rejected"};const j=await r.json();OA_IDS[base]=(j.data||[]).map(m=>m.id);}
+    catch(e){return{error:"couldn't reach the AI service (blocked or offline)"};}}
+  const grab=s=>parseVerdict(s);
+  for(let tries=0;tries<4;tries++){
+    const model=(OA_MODEL[base]&&!(OA_COOL[OA_MODEL[base]]>Date.now()))?OA_MODEL[base]:oaPick(base,prefer);
+    if(!model)return{error:"free AI limit reached on every model, try later"};OA_MODEL[base]=model;
+    let limited=false;
+    // Try strict JSON mode first; if the service rejects the format, salvage its draft or retry in plain mode.
+    for(const strict of jsonMode?[true,false]:[false]){
+      const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
+      try{const body={model,temperature:0,max_tokens:900,messages:[{role:"system",content:AI_RULES},{role:"user",content:ask+" Respond with one JSON object only."}]};if(strict)body.response_format={type:"json_object"};
+        const r=await fetch(base+"/chat/completions",{method:"POST",signal:ctl.signal,headers:h,body:JSON.stringify(body)});
+        const j=await r.json().catch(()=>({}));
+        if(!r.ok){if(r.status===401)return{error:"key rejected"};
+          if(r.status===429||r.status===413||r.status===404||/decommission|not found|does not exist/i.test(JSON.stringify(j))){OA_COOL[model]=Date.now()+(r.status===429?10*60e3:24*3600e3);limited=true;break;}
+          const fg=grab(j.error&&j.error.failed_generation);if(fg)return fg;if(strict)continue;return{error:((j.error&&j.error.message)||("HTTP "+r.status)).slice(0,90)};}
+        const msg=(((j.choices||[])[0]||{}).message||{}),v=grab(msg.content)||grab(msg.reasoning);if(v)return v;if(strict)continue;return{error:"unreadable reply"};
+      }catch(e){return{error:e.name==="AbortError"?"timed out":"couldn't reach the AI service (blocked or offline)"};}finally{clearTimeout(to);}
+    }
+    if(!limited)return{error:"unreadable reply"};
   }
-  return{error:"unreadable reply"};
+  return{error:"free AI limit reached, try later"};
 }
 
 // ================= Menu =================
 function home(){
-  if(N)leaveNet();L=null;S=null;MENU=true;
+  if(N)leaveNet();L=null;S=null;CUP=null;MENU=true;
   jumpTo(0);SC.parts=[];renderSide(null);
   const done=store.get("oddball.daily."+today(),null),st=store.get("oddball.stats",{played:0,best:0,streak:0}),eb=store.get("oddball.endlessBest",0),bb=store.get("oddball.blitzBest",0),rb=store.get("otc.rendlessBest",0);
   const M=TH.modes,d=new Date(),num=Math.max(1,Math.floor((new Date(today())-new Date("2026-10-29"))/864e5)+1);
@@ -1613,6 +1807,7 @@ function home(){
       <button class="mbtn m-fire" data-act="rendless">${M.rendless}${store.get("otc.rendless",null)?`<small>RUN IN PROGRESS</small>`:rb?`<small>BEST ${rb}</small>`:""}</button>
       <button class="mbtn m-mint" data-act="practice">${M.practice}</button>
       <button class="mbtn m-nova wide" data-act="party">${M.party}</button>
+      <button class="mbtn wide cupbtn" data-act="cup">💖 CUPIDIUM RUSH${store.get("otc.cupBest",0)?`<small>BEST ${store.get("otc.cupBest",0)}</small>`:""}</button>
     </div>
     <div class="menubar">
       <button class="pbtn" data-act="skins">SKINS</button>
@@ -1972,15 +2167,37 @@ const PEER_OPTS={config:{iceServers:[
   {urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},
   {urls:"stun:openrelay.metered.ca:80"},
   {urls:["turn:openrelay.metered.ca:80","turn:openrelay.metered.ca:443","turn:openrelay.metered.ca:443?transport=tcp","turns:openrelay.metered.ca:443"],username:"openrelayproject",credential:"openrelayproject"}]}};
+// Backup route: when a network blocks direct device-to-device links (school/work devices often do),
+// game messages go through ntfy.sh, a free public message relay over normal HTTPS.
+const RELAY="https://ntfy.sh/",rtopic=code=>"offthecharts-v1-room-"+code.toLowerCase();
+function relayOpen(code,me,onMsg){
+  const url=RELAY+rtopic(code),es=new EventSource(url+"/sse");let dead=false,busy=false;const q=[];
+  es.onmessage=ev=>{try{const j=JSON.parse(ev.data);if(j.event&&j.event!=="message")return;const m=JSON.parse(j.message);if(!m||m.f===me)return;onMsg(m);}catch(e){}};
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const pump=async()=>{if(busy)return;busy=true;
+    while(q.length&&!dead){const b=q[0];try{const r=await fetch(url,{method:"POST",body:b});if(r.status===429){await wait(4000);continue;}q.shift();}catch(e){await wait(1500);}}
+    busy=false;};
+  return{es,pub(to,d){if(dead)return;q.push(JSON.stringify({f:me,to,d}));pump();},
+    bye(to,d){try{fetch(url,{method:"POST",body:JSON.stringify({f:me,to,d}),keepalive:true});}catch(e){}},
+    close(){dead=true;try{es.close();}catch(e){}}};
+}
+function relayConn(send){return{relay:true,open:true,h:{},on(e,f){this.h[e]=f;},_emit(e,d){try{this.h[e]&&this.h[e](d);}catch(x){console.error(x);}},send,close(){}};}
+function hostRelayMsg(m){
+  if(!N||!N.host||m.to!=="host"||!m.d)return;N.rconns=N.rconns||{};let c=N.rconns[m.f];
+  if(m.d.t==="bye"){if(c){delete N.rconns[m.f];c._emit("close");}return;}
+  if(!c){if(m.d.t!=="hello")return;c=relayConn(d=>N&&N.relay&&N.relay.pub(m.f,d));c.peer="relay-"+m.f;N.rconns[m.f]=c;hostConn(c);}
+  c._emit("data",m.d);
+}
 const genCode=()=>Array.from({length:4},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random()*24)]).join("");
 const FATAL=["network","server-error","socket-error","socket-closed","browser-incompatible","ssl-unavailable","unavailable-id"];
 function connecting(t){showPanel(`<div class="glass card center"><div class="orbit"></div><p>${esc(t)}</p><button class="pbtn sm" data-act="leave">CANCEL</button></div>`);}
 function netError(msg){leaveNet();showPanel(`
   <div class="glass card center"><h3 style="font-size:14px">CONNECTION PROBLEM</h3><p class="hint">${esc(msg)}</p>
   <div class="row" style="justify-content:center"><button class="pbtn c m-nova" data-act="party">BACK TO PARTY</button><button class="pbtn" data-act="home">HOME</button></div></div>`);}
-function leaveNet(){if(!N)return;const n=N;N=null;clearTimeout(n.deadline);clearTimeout(n.joinTimer);clearTimeout(n.auto);try{n.peer.destroy();}catch(e){}renderSide(null);}
+function leaveNet(){if(!N)return;const n=N;N=null;clearTimeout(n.deadline);clearTimeout(n.joinTimer);clearTimeout(n.auto);try{n.peer.destroy();}catch(e){}
+  if(n.relay){if(!n.host)n.relay.bye("host",{t:"bye"});n.relay.close();}renderSide(null);}
 const names=()=>N.host?N.players.map(p=>p.name):(N.names||[]);
-function broadcast(m){N.players.forEach(p=>{if(p.conn&&p.conn.open)try{p.conn.send(m);}catch(e){}});}
+function broadcast(m){let r=false;N.players.forEach(p=>{if(!p.conn)return;if(p.conn.relay){r=true;return;}if(p.conn.open)try{p.conn.send(m);}catch(e){}});if(r&&N.relay)N.relay.pub("*",m);}
 const nprog=m=>progHTML(`ROUND ${m.i+1} OF ${m.n} · ROOM ${N.code}`,m.n,m.i);
 // host builds the live scoreboard and shares it
 function hostBoard(){return N.players.map(p=>({name:p.name,score:p.score,st:N.started&&N.revealed!==N.i&&N.answers[p.id]?"✓":""}));}
@@ -1994,7 +2211,7 @@ async function hostRoom(){
     const code=genCode(),peer=new Peer("oddball-room-"+code,PEER_OPTS);
     const mine={host:true,peer,code,me:name,players:[{id:"me",name,score:0}],rounds:7,started:false,i:-1,revealed:-1,answers:{}};
     N=mine;
-    peer.on("open",()=>{if(N===mine)lobby();});
+    peer.on("open",()=>{if(N!==mine)return;if(NET_MODE!=="room"&&typeof EventSource!=="undefined")try{mine.relay=relayOpen(code,"host",hostRelayMsg);}catch(e){}lobby();});
     peer.on("connection",c=>{if(N===mine)hostConn(c);});
     peer.on("disconnected",()=>{if(N===mine)try{peer.reconnect();}catch(e){}});
     peer.on("error",err=>{if(N!==mine)return;
@@ -2014,8 +2231,8 @@ function hostConn(c){
       N.answers[c.peer]={display:String(d.display).slice(0,40),tier:Math.max(-1,Math.min(5,parseInt(d.tier)))};pushBoard();checkDone();
     } else if(d.t==="judge"){
       const p=PROMPTS[N.ids&&N.ids[d.i]],send=res=>{try{c.send({t:"verdict",id:d.id,res});}catch(e){}};
-      if(!p||!aiReady()||d.i!==N.i)return send({error:"the host's AI check is off"});
-      judgeAI(p,String(d.text||"").slice(0,60)).then(r=>send(r&&r.display?{display:r.display,tier:r.tier,ai:true}:r));
+      if(!p||!(aiReady()||wikiOn())||d.i!==N.i)return send({error:"the host's checking is off"});
+      smartJudge(p,String(d.text||"").slice(0,60)).then(r=>send(r&&r.display?{display:r.display,tier:r.tier,ai:true}:r));
     }
   });
   c.on("close",()=>{if(!N||!N.host)return;const had=N.players.length;N.players=N.players.filter(p=>p.id!==c.peer);
@@ -2030,12 +2247,12 @@ function lobby(){
       <p class="hint">${NET_MODE==="room"?"Friends open this same page (share it from Claude's Share menu), choose Party → Join, and enter this code.":"Friends open their copy of the game, choose Party → Join, and enter this code."}</p></div>
     <div class="glass card"><h3 style="font-size:13px">PLAYERS</h3><div class="plist">${nm.map((n,i)=>`<div class="prow">${av(n,i)}<b class="grow">${esc(n)}</b>${i===0?`<span class="hint">host</span>`:""}</div>`).join("")}</div></div>
     ${host?`<div class="glass card"><h3 style="font-size:13px">ROUNDS</h3><div class="seg">${[5,7,10].map(n=>`<button class="pbtn ${N.rounds===n?"on":""}" data-act="nrounds" data-n="${n}">${n}</button>`).join("")}</div>
-        <p class="hint">AI checking: ${NET_MODE==="room"?"each player's own Claude checks their answers.":aiReady()?"on (your AI checks for everyone)":"off (word bank only)"}</p></div>
+        <p class="hint">AI checking: ${NET_MODE==="room"?"each player's own Claude checks their answers.":aiReady()?"on (your AI"+(wikiOn()?" + Wikipedia":"")+" checks for everyone)":wikiOn()?"Wikipedia (your device checks for everyone)":"off (word bank only)"}</p></div>
       <div class="row"><button class="pbtn c m-nova big" data-act="hostStart" ${nm.length<2?"disabled":""}>START ${TH.go}</button><button class="pbtn" data-act="leave">CLOSE ROOM</button></div>
       ${nm.length<2?`<p class="hint">Waiting for at least one friend to join…</p>`:""}`
     :`<div class="glass card center"><div class="orbit"></div><p class="hint">Waiting for the host to start…</p><button class="pbtn sm" data-act="leave">LEAVE</button></div>`}`);
 }
-function hostStart(){N.started=true;N.players.forEach(p=>p.score=0);N.ids=pickFresh(N.rounds);N.i=-1;N.revealed=-1;N.ai=NET_MODE==="room"?false:aiReady();
+function hostStart(){N.started=true;N.players.forEach(p=>p.score=0);N.ids=pickFresh(N.rounds);N.i=-1;N.revealed=-1;N.ai=NET_MODE==="room"?false:(aiReady()||wikiOn());
   broadcast({t:"start",names:names()});jumpTo(0);hostNextRound();}
 function hostNextRound(){
   clearTimeout(N.auto);N.i++;if(N.i>=N.ids.length)return hostEnd();
@@ -2059,16 +2276,32 @@ async function joinRoom(){
   const code=($("pcode").value||"").toUpperCase().replace(/[^A-Z]/g,"");
   if(code.length!==4){$("perr").textContent="Enter the 4-letter room code.";return;}
   connecting("Joining room "+code+"…");
-  try{await loadPeer();}catch(e){return netError("Couldn't load the multiplayer engine. Check your internet connection.");}
-  const peer=new Peer(PEER_OPTS),mine={host:false,peer,code,me:name,names:[],pending:{}};N=mine;
-  mine.joinTimer=setTimeout(()=>{if(N===mine&&!mine.joined)netError(!mine.online
-    ?"Couldn't reach the party server. This network may block it (school/work Wi-Fi often does). Try another network or a phone hotspot."
-    :"Found the server, but couldn't link to room "+code+". The two networks are blocking each other. Try again, or put both devices on the same Wi-Fi.");},25000);
-  peer.on("open",()=>{if(N!==mine)return;mine.online=true;connecting("Linking to room "+code+"…");const c=peer.connect("oddball-room-"+code,{reliable:true});mine.conn=c;
-    c.on("open",()=>{mine.joined=true;c.send({t:"hello",name});});
-    c.on("data",d=>{if(N===mine&&d)clientData(d);});
-    c.on("close",()=>{if(N===mine&&!mine.over)netError("Lost connection to the room.");});});
-  peer.on("error",err=>{if(N!==mine)return;netError(err.type==="peer-unavailable"?"No room with code "+code+".":"Connection problem ("+err.type+").");});
+  let noPeer=false;try{await loadPeer();}catch(e){noPeer=true;}
+  if(noPeer&&typeof EventSource==="undefined")return netError("Couldn't load the multiplayer engine. Check your internet connection.");
+  const peer=noPeer?{on(){},connect(){},destroy(){}}:new Peer(PEER_OPTS),mine={host:false,peer,code,me:name,names:[],pending:{}};N=mine;
+  // Plan B: the relay route, used when a direct link can't be made.
+  const toRelay=()=>{
+    if(N!==mine||mine.joined||mine.relayTry||NET_MODE==="room"||typeof EventSource==="undefined")return false;mine.relayTry=true;
+    clearTimeout(mine.joinTimer);const old=mine.conn;mine.conn=null;try{old&&old.close();}catch(e){}try{peer.destroy();}catch(e){}
+    connecting("Direct link blocked. Trying the backup route to room "+code+"…");
+    const id="c"+Math.random().toString(36).slice(2,9);let hello=false;
+    const rl=relayOpen(code,id,m=>{if(N!==mine||m.f!=="host"||(m.to!=="*"&&m.to!==id))return;mine.joined=true;clientData(m.d);});
+    const conn=relayConn(d=>rl.pub("host",d));mine.relay=rl;mine.conn=conn;
+    const sayHi=()=>{if(hello||N!==mine)return;hello=true;conn.send({t:"hello",name});};
+    rl.es.onopen=sayHi;setTimeout(sayHi,2500);
+    mine.joinTimer=setTimeout(()=>{if(N===mine&&!mine.joined)netError("Couldn't reach room "+code+". Check the code. If it's right, this network is blocking the game; try a phone hotspot or home Wi-Fi.");},15000);
+    return true;};
+  mine.joinTimer=setTimeout(()=>{if(N===mine&&!mine.joined&&!toRelay())netError("Couldn't link to room "+code+". Try again, or put both devices on the same Wi-Fi.");},mine.online?9000:10000);
+  if(noPeer){toRelay();return;}
+  peer.on("open",()=>{if(N!==mine)return;mine.online=true;connecting("Linking to room "+code+"…");
+    clearTimeout(mine.joinTimer);mine.joinTimer=setTimeout(()=>{if(N===mine&&!mine.joined&&!toRelay())netError("Couldn't link to room "+code+". Try again, or put both devices on the same Wi-Fi.");},9000);
+    const c=peer.connect("oddball-room-"+code,{reliable:true});mine.conn=c;
+    c.on("open",()=>{if(mine.conn!==c)return;mine.joined=true;c.send({t:"hello",name});});
+    c.on("data",d=>{if(N===mine&&mine.conn===c&&d)clientData(d);});
+    c.on("close",()=>{if(N===mine&&mine.conn===c&&!mine.over)netError("Lost connection to the room.");});});
+  peer.on("error",err=>{if(N!==mine||mine.relayTry)return;
+    if(err.type==="peer-unavailable")return netError("No room with code "+code+".");
+    if(!toRelay())netError("Connection problem ("+err.type+").");});
 }
 function clientData(d){
   switch(d.t){
@@ -2092,7 +2325,7 @@ function askHost(p,text){
 function myScore(){if(!N)return 0;if(N.host){const p=N.players.find(p=>p.name===N.me);return p?p.score:0;}const b=(N.board||[]).find(r=>r.name===N.me);return b?b.score:0;}
 function netPlay(m){
   N.i=m.i;N.playing=true;
-  const judge=N.host?(m.ai?judgeAI:(NET_MODE==="room"?localJudge():null)):(m.ai?askHost:localJudge());
+  const judge=N.host?(m.ai?smartJudge:(NET_MODE==="room"?localJudge():null)):(m.ai?askHost:localJudge());
   const base=myScore();
   playRound(PROMPTS[m.pi],{prog:nprog(m),judge,side:true,
     onPick:e=>{const a=e?{display:e.display,tier:e.tier}:{display:"—",tier:-1};const pts=e?TIERS[e.tier].pts:0;setScore(base+pts,e?e.tier:-1);
@@ -2120,9 +2353,82 @@ function abortAsk(){
     <div class="row" style="justify-content:center"><button class="pbtn c m-nova" data-act="abortYes">LEAVE</button><button class="pbtn" data-act="closeModal">KEEP PLAYING</button></div></div>`;
 }
 
+// ================= CUPIDIUM RUSH (mini-game) =================
+// The rarest element in the universe is scattered through space and the deep sea.
+// Steer left/right to collect cupidium atoms, dodge hazards, and hope for a golden ONE IN A CUPIDIUM.
+const CUP_SECS=60;let CUP=null,VX=0;
+function startCup(){
+  closeModal();showPanel("",{hud:true});MENU=false;jumpTo(0);SC.parts=[];
+  CUP={x:W/2,tx:W/2,items:[],floats:[],score:0,combo:0,lives:3,t0:performance.now(),last:performance.now(),spawnAt:0,vel:.09,hurt:0,done:false,keys:{}};
+  cupHud();
+}
+function cupHud(){if(!CUP||!$("prog"))return;const left=Math.max(0,Math.ceil(CUP_SECS-(performance.now()-CUP.t0)/1000));
+  $("prog").innerHTML=`<small>CUPIDIUM RUSH · <b style="color:#ff8fe0">${CUP.score}</b> PTS${CUP.combo>2?` · COMBO ×${Math.min(5,1+Math.floor(CUP.combo/3))}`:""} · ${left}s · ${"♥".repeat(CUP.lives)}<span style="opacity:.3">${"♥".repeat(3-CUP.lives)}</span></small>`;}
+function cupSpawn(){
+  const r=Math.random(),deep=TH.up?1:-1;const it={x:20+Math.random()*(W-40),a:cam+H+24,vx:(Math.random()-.5)*.25,ph:Math.random()*6};
+  const elapsed=(performance.now()-CUP.t0)/1000,hazardOdds=.28+Math.min(.22,elapsed/240);
+  if(r<.025)it.k="gold";else if(r<.025+hazardOdds)it.k="hz";else if(r<.025+hazardOdds+.08)it.k="decoy";else it.k="cup";
+  if(it.k==="hz")it.vx*=3;CUP.items.push(it);}
+function cupFloat(x,y,txt,c){CUP.floats.push({x,y,txt,c,life:50});}
+function cupTick(t){
+  const now=performance.now(),dt=Math.min(50,now-CUP.last);CUP.last=now;
+  if(!$("modal").hidden||document.hidden){CUP.t0+=dt;CUP.spawnAt+=dt;return;}
+  const el=(now-CUP.t0)/1000;if(el>=CUP_SECS||CUP.lives<=0){if(!CUP.done)cupEnd();return;}
+  CUP.vel=.09+el*.0035;SC.alt+=CUP.vel*dt;FL.dur=0;FL.to=SC.alt;
+  const k=CUP.keys;if(k.l)CUP.tx-=dt*.32;if(k.r)CUP.tx+=dt*.32;CUP.tx=Math.max(14,Math.min(W-14,CUP.tx));
+  CUP.x+=(CUP.tx-CUP.x)*Math.min(1,dt*.018);
+  if(now>CUP.spawnAt){cupSpawn();CUP.spawnAt=now+Math.max(260,700-el*7)*(.7+Math.random()*.6);}
+  const vy=ys(SC.alt)-(TH.up?16:0);
+  for(const it of CUP.items){it.x+=it.vx*dt*.06;if(it.x<10||it.x>W-10)it.vx*=-1;
+    const y=ys(it.a);if(Math.abs(it.x-CUP.x)<15&&Math.abs(y-vy)<15&&!it.got){it.got=1;
+      if(it.k==="cup"){CUP.combo++;const m=Math.min(5,1+Math.floor(CUP.combo/3)),v=10*m;CUP.score+=v;cupFloat(it.x,y,"+"+v,"#ff8fe0");sfx.ok(Math.min(3,m-1));}
+      else if(it.k==="gold"){CUP.combo+=3;CUP.score+=250;cupFloat(it.x,y,"+250","#fde047");sfx.ok(5);burst(120);toast(`<span class="glow cup">ONE IN A CUPIDIUM!!!!</span>`);}
+      else if(it.k==="decoy"){CUP.combo=0;cupFloat(it.x,y,"COMMON","#94a3b8");sfx.dup();}
+      else{CUP.lives--;CUP.combo=0;CUP.hurt=now;SC.shake=400;cupFloat(it.x,y,"OUCH","#fb7185");sfx.miss();}
+      cupHud();}}
+  CUP.items=CUP.items.filter(it=>!it.got&&(TH.up?ys(it.a)<H+30:ys(it.a)>-30));
+  if(frameN%10===0)cupHud();
+}
+function cupDraw(t){
+  for(const it of CUP.items){const x=it.x,y=ys(it.a),pulse=((t/220)|0)%2,bad=it.k==="hz";
+    g.globalAlpha=.55;g.fillStyle="#020617";disc(x,y,bad?13:12,"rgba(2,6,23,.55)");g.globalAlpha=1;
+    for(let s=0;s<28;s++){if((s+(pulse?1:0))%2)continue;const a2=s/28*6.283;P(x+Math.cos(a2)*(bad?13:12),y+Math.sin(a2)*(bad?13:12),1,1,bad?"#ef4444":it.k==="decoy"?"#64748b":"#ffffff");}
+    if(bad){P(x-1,y-19,3,4,"#ef4444");P(x-1,y-14,3,1,"#ef4444");}
+    if(it.k==="cup"||it.k==="gold"){const gold=it.k==="gold",c=gold?"#fde047":"#ff5fd2",r=gold?16:11;drawGlow(x,y,c,r,gold?.8:.6);
+      for(let e=0;e<(gold?3:2);e++){const an=t*.006+e*2.1+it.ph,tilt=e%2?.45:-.45;for(let s=0;s<20;s++){const a2=s/20*6.283;const ex=Math.cos(a2)*7,ey=Math.sin(a2)*3;P(x+ex*Math.cos(tilt)-ey*Math.sin(tilt),y+ex*Math.sin(tilt)+ey*Math.cos(tilt),1,1,gold?"rgba(253,224,71,.5)":"rgba(255,143,224,.45)");}
+        const ex=Math.cos(an)*7,ey=Math.sin(an)*3;P(x+ex*Math.cos(tilt)-ey*Math.sin(tilt)-1,y+ex*Math.sin(tilt)+ey*Math.cos(tilt)-1,2,2,"#ffffff");}
+      disc(x,y,5,OUT);disc(x,y,4,gold?"#facc15":"#ff5fd2");P(x-2,y-3,3,1,gold?"#fef9c3":"#ffd6f5");P(x-2,y-2,1,1,"#ffffff");}
+    else if(it.k==="decoy"){disc(x,y,4,OUT);disc(x,y,3,"#94a3b8");P(x-1,y-2,2,1,"#e2e8f0");for(let s=0;s<16;s++){const a2=s/16*6.283;P(x+Math.cos(a2)*7,y+Math.sin(a2)*3,1,1,"rgba(148,163,184,.5)");}}
+    else if(TH.up){const R=rng("hz"+(it.ph*1000|0));disc(x,y,8,OUT);disc(x,y,7,"#78716c");disc(x-2,y-2,4,"#a8a29e");for(let c2=0;c2<3;c2++)disc(x+R()*8-4,y+R()*8-4,1+R()*1.5|0,"#57534e");}
+    else{for(let s=0;s<12;s++){const a2=s/12*6.283+t*.001;P(x+Math.cos(a2)*10,y+Math.sin(a2)*10,1,1,"#c084fc");P(x+Math.cos(a2)*8,y+Math.sin(a2)*8,1,1,"#7e22ce");}disc(x,y,6,OUT);disc(x,y,5,"#581c87");P(x-2,y-2,2,2,"#a855f7");}}
+  for(const f of CUP.floats){f.life--;f.y-=.5;g.globalAlpha=Math.min(1,f.life/20);g.font="bold 8px monospace";g.fillStyle=OUT;g.fillText(f.txt,Math.round(f.x-f.txt.length*2.4)+1,Math.round(f.y)+1);g.fillStyle=f.c;g.fillText(f.txt,Math.round(f.x-f.txt.length*2.4),Math.round(f.y));}
+  g.globalAlpha=1;CUP.floats=CUP.floats.filter(f=>f.life>0);
+}
+function cupEnd(){
+  CUP.done=true;const sc=CUP.score,best=store.get("otc.cupBest",0),isBest=sc>best;if(isBest){store.set("otc.cupBest",sc);burst(90);}
+  const how=CUP.lives<=0?"OUT OF HEARTS":"TIME!";CUP=null;MENU=true;
+  showPanel(`<div class="row" style="justify-content:space-between"><h2 style="font-size:15px">CUPIDIUM RUSH</h2><button class="pbtn sm" data-act="home">◀ HOME</button></div>
+    <div class="glass card center"><div class="lbl">${how}</div><div class="big" style="color:#ff8fe0">${sc}</div><div class="hint">${isBest?"<b style='color:#fde047'>NEW BEST!</b>":"best "+best}</div></div>
+    <div class="row"><button class="pbtn c m-nova" data-act="cup">PLAY AGAIN</button><button class="pbtn" data-act="copy" data-share="${esc(`${GAME} · CUPIDIUM RUSH: ${sc} pts 💖`)}">COPY RESULT</button></div>`);
+}
+function cupIntro(){
+  const best=store.get("otc.cupBest",0);
+  showPanel(`<div class="row" style="justify-content:space-between"><h2 style="font-size:15px">CUPIDIUM RUSH</h2><button class="pbtn sm" data-act="home">◀ HOME</button></div>
+    <div class="glass card center"><div class="glow cup" style="font-size:18px">CUPIDIUM</div>
+      <p class="hint" style="margin-top:12px">Cupidium (Cu<sub>pd</sub>) is the rarest element in the universe, and it's scattered all through ${TH.up?"space":"the deep sea"}. Collect as much as you can in ${CUP_SECS} seconds.</p>
+      <p style="margin:8px 0">💖 cupidium atom: +10 (chain them for up to ×5)<br>🌟 golden atom: <b>ONE IN A CUPIDIUM</b>, +250<br>⚪ grey atom: a common element, breaks your combo<br>${TH.up?"🪨 asteroid":"🟣 sea urchin"}: lose a heart (you have 3)</p>
+      <p class="hint">Steer with ← → (or A / D), or drag / move your mouse.</p>
+      ${best?`<p class="hint">Best: <b>${best}</b></p>`:""}
+      <button class="pbtn c m-nova big" data-act="cupGo">START ▶</button></div>`);
+}
+addEventListener("keydown",e=>{if(!CUP)return;if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A"){CUP.keys.l=1;e.preventDefault();}if(e.key==="ArrowRight"||e.key==="d"||e.key==="D"){CUP.keys.r=1;e.preventDefault();}});
+addEventListener("keyup",e=>{if(!CUP)return;if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A")CUP.keys.l=0;if(e.key==="ArrowRight"||e.key==="d"||e.key==="D")CUP.keys.r=0;});
+addEventListener("pointermove",e=>{if(!CUP||e.target.closest("button"))return;const r=cv.getBoundingClientRect();CUP.tx=(e.clientX-r.left)/r.width*W;},{passive:true});
+addEventListener("touchmove",e=>{if(!CUP)return;const r=cv.getBoundingClientRect(),tt=e.touches[0];CUP.tx=(tt.clientX-r.left)/r.width*W;},{passive:true});
+
 // ================= Actions =================
 const ACT={
-  home:()=>home(),daily:()=>startSolo("daily"),practice:()=>startSolo("practice"),endless:()=>runAsk("endless"),rendless:()=>runAsk("rendless"),blitz:()=>startBlitz(),
+  home:()=>home(),cup:()=>cupIntro(),cupGo:()=>startCup(),daily:()=>startSolo("daily"),practice:()=>startSolo("practice"),endless:()=>runAsk("endless"),rendless:()=>runAsk("rendless"),blitz:()=>startBlitz(),
   runCont:b=>{closeModal();b.dataset.m==="rendless"?startREndless(true):startEndless(true);},runNew:b=>{closeModal();b.dataset.m==="rendless"?startREndless():startEndless();},
   endRun:()=>endRun(),endlessNew:()=>startEndless(),rendlessNew:()=>startREndless(),party:()=>{leaveNet();partyMenu();},
   saved:()=>soloResults(store.get("oddball.daily."+today(),null),"daily"),settings:()=>settings(),skins:()=>skins(),palettes:()=>palettes(),pickPal:b=>{store.set("otc.palette",b.dataset.id);applyPalette();palettes();},
