@@ -829,6 +829,35 @@ for(const p of PROMPTS){const cup=p.t[5];let arr=p.t.slice(0,5).filter(s=>s&&s.t
 // Inside joke: both answers are ONE IN A CUPIDIUM!!!!
 PROMPTS.push({q:"Give or Take?",c:"MYSTERY",nowiki:1,t:["","","","","","give|take"]});
 
+// ===== Geography pack: more places to name (tiers: obvious -> obscure) =====
+PROMPTS.push(
+ {q:"Name a US state",c:"GEOGRAPHY",k:["state","u.s. state"],t:["california|texas|florida|new york","hawaii|alaska|ohio|washington|georgia|arizona|colorado|nevada|illinois|michigan|pennsylvania|north carolina|virginia|new jersey|massachusetts|tennessee|oregon|louisiana","minnesota|wisconsin|utah|kentucky|alabama|south carolina|maryland|missouri|indiana|oklahoma|kansas|iowa|connecticut|mississippi|arkansas|new mexico|nebraska|idaho|maine|montana","vermont|new hampshire|rhode island|west virginia|delaware|wyoming|south dakota","north dakota"]},
+ {q:"Name a country in North America",c:"GEOGRAPHY",k:["country","nation"],t:["united states/usa/us/america/united states of america|canada|mexico","cuba|jamaica|panama|costa rica|guatemala|haiti|dominican republic|bahamas/the bahamas|honduras","nicaragua|el salvador|belize|puerto rico|barbados|trinidad and tobago/trinidad|greenland","grenada|saint lucia/st lucia|dominica|antigua and barbuda/antigua|saint vincent and the grenadines/st vincent|bermuda|aruba","saint kitts and nevis/st kitts and nevis/st kitts|curacao|cayman islands|turks and caicos|martinique|guadeloupe|anguilla|montserrat|saint pierre and miquelon"]},
+ {q:"Name a country in Oceania",c:"GEOGRAPHY",k:["country","island","nation"],t:["australia|new zealand","fiji|papua new guinea|samoa|tonga","solomon islands|vanuatu|micronesia/federated states of micronesia|marshall islands|kiribati|palau","tuvalu|nauru|cook islands|niue|new caledonia|french polynesia|tahiti","tokelau|wallis and futuna|norfolk island|pitcairn islands/pitcairn"]},
+ {q:"Name a country in Central Asia or the Middle East",c:"GEOGRAPHY",k:["country","nation"],t:["iran|iraq|israel|saudi arabia|afghanistan|turkey","syria|egypt|jordan|lebanon|kuwait|qatar|united arab emirates/uae|kazakhstan|pakistan|yemen","oman|bahrain|uzbekistan|palestine|cyprus","turkmenistan|tajikistan|kyrgyzstan|georgia|armenia|azerbaijan","mongolia|northern cyprus"]},
+ {q:"Name a Canadian province or territory",c:"GEOGRAPHY",k:["province","territory","canada"],t:["ontario|quebec|british columbia","alberta|nova scotia|manitoba|saskatchewan","newfoundland and labrador/newfoundland|new brunswick|yukon","prince edward island/pei|nunavut","northwest territories"]},
+ {q:"Name a capital city in Asia",c:"GEOGRAPHY",k:["capital","city"],t:["tokyo|beijing|seoul|bangkok|new delhi/delhi","manila|jakarta|hanoi|singapore|kuala lumpur|taipei|tehran|baghdad|kabul|islamabad","kathmandu|dhaka|riyadh|jerusalem|doha|abu dhabi|ulaanbaatar/ulan bator|pyongyang|colombo|phnom penh|kuwait city","naypyidaw/naypyitaw|vientiane|thimphu|male|bandar seri begawan|dili|tashkent|astana|bishkek|dushanbe|ashgabat|baku|tbilisi|yerevan|muscat|manama|sanaa|damascus|amman|beirut|nicosia","sri jayawardenepura kotte/kotte"]},
+ {q:"Name a capital city in Africa",c:"GEOGRAPHY",k:["capital","city"],t:["cairo|nairobi","addis ababa|abuja|accra|cape town|pretoria|rabat|tunis|algiers|kinshasa","dakar|kampala|khartoum|harare|lusaka|luanda|dar es salaam|dodoma|tripoli|mogadishu|kigali|antananarivo|windhoek|gaborone|maputo","bamako|niamey|ouagadougou|conakry|freetown|monrovia|abidjan|yamoussoukro|lome|porto-novo|cotonou|yaounde|libreville|brazzaville|bangui|ndjamena|asmara|djibouti|juba|lilongwe|maseru|mbabane|bujumbura|gitega|malabo|bissau|banjul|nouakchott|praia|victoria|port louis|moroni|sao tome","bloemfontein|lobamba|el aaiun/laayoune"]},
+ {q:"Name a capital city in the Americas",c:"GEOGRAPHY",k:["capital","city"],t:["washington dc/washington d.c./washington|ottawa|mexico city","havana|lima|buenos aires|santiago|bogota|brasilia|caracas","quito|montevideo|asuncion|la paz|kingston|panama city|san jose|guatemala city|san juan|santo domingo|port-au-prince","tegucigalpa|managua|san salvador|belmopan|nassau|georgetown|paramaribo|sucre|port of spain|bridgetown","castries|roseau|basseterre|saint johns/st johns|kingstown|st georges/saint georges|cayenne|nuuk"]},
+ {q:"Name a city in Italy",c:"GEOGRAPHY",k:["city","italy","comune","town"],t:["rome|venice|milan|florence","naples|pisa|turin|verona|bologna","genoa|siena|palermo|bari|amalfi|sorrento|positano|como|lucca|trieste|parma|modena|pompeii","padua/padova|perugia|assisi|rimini|ravenna|catania|cagliari|messina|bergamo|brescia|vicenza|treviso|trento|bolzano|ancona|lecce|matera|taormina|cremona|mantua/mantova|ferrara|livorno|san gimignano|orvieto|capri","reggio calabria|reggio emilia|piacenza|udine|pescara|salerno|syracuse/siracusa|agrigento|alberobello|chioggia|spoleto|urbino|aosta|cortina d'ampezzo"]},
+ {q:"Name a city in France",c:"GEOGRAPHY",k:["city","france","commune","town"],t:["paris|marseille|lyon|nice","bordeaux|cannes|toulouse|strasbourg|versailles","lille|nantes|montpellier|avignon|calais|reims|saint-tropez/st tropez|chamonix|grenoble|dijon|rennes","le havre|rouen|brest|toulon|limoges|tours|orleans|metz|nancy|amiens|caen|arles|aix-en-provence|carcassonne|lourdes|biarritz|annecy|antibes|colmar|nimes|perpignan|la rochelle|saint-malo|chartres|poitiers|cherbourg","besancon|clermont-ferrand|saint-etienne|mulhouse|angers|le mans|pau|bayonne|vichy|cognac|chambery|troyes|dunkirk/dunkerque|ajaccio|bastia"]},
+ {q:"Name a city in Germany",c:"GEOGRAPHY",k:["city","germany","town"],t:["berlin|munich|hamburg|frankfurt","cologne/koln|stuttgart|dusseldorf|dresden|leipzig|nuremberg","bonn|hanover/hannover|bremen|heidelberg|dortmund|essen|potsdam|weimar|wolfsburg|baden-baden","mainz|wiesbaden|augsburg|regensburg|freiburg|karlsruhe|mannheim|aachen|kiel|lubeck|rostock|munster|bielefeld|bochum|duisburg|gelsenkirchen|wurzburg|bamberg|trier|erfurt|jena|magdeburg|halle|kassel|ulm","rothenburg ob der tauber|garmisch-partenkirchen|oberammergau|passau|konstanz|tubingen|gottingen|marburg|quedlinburg|goslar|wismar|stralsund|flensburg|cottbus|chemnitz|zwickau"]},
+ {q:"Name a city in the UK",c:"GEOGRAPHY",k:["city","town","england","scotland","wales","united kingdom"],t:["london|manchester|liverpool|edinburgh","birmingham|glasgow|oxford|cambridge|leeds|bristol|cardiff|belfast","newcastle|sheffield|brighton|york|nottingham|bath|southampton|aberdeen|leicester|coventry|plymouth|portsmouth|dundee|swansea|stratford-upon-avon","inverness|canterbury|norwich|exeter|chester|durham|lincoln|derby|hull|sunderland|wolverhampton|stoke-on-trent|reading|milton keynes|blackpool|bournemouth|salisbury|winchester|lancaster|carlisle|perth|stirling|derry/londonderry|newport|wrexham|st andrews","st davids|wells|ely|truro|ripon|armagh|bangor|lisburn|newry|dunfermline|lichfield|chichester|hereford|worcester|gloucester|st albans"]},
+ {q:"Name a city in China",c:"GEOGRAPHY",k:["city","china","prefecture"],t:["beijing|shanghai|hong kong","shenzhen|guangzhou|wuhan|macau/macao|chengdu|xian/xi'an","chongqing|tianjin|nanjing|hangzhou|harbin|lhasa|suzhou|qingdao|dalian|guilin|kunming","xiamen|shenyang|changsha|zhengzhou|jinan|fuzhou|hefei|nanning|urumqi|lanzhou|guiyang|taiyuan|shijiazhuang|ningbo|sanya|dunhuang|kashgar|lijiang|dongguan|foshan|zhuhai","hohhot|yinchuan|xining|haikou|nanchang|changchun|baotou|datong|luoyang|kaifeng|pingyao|wuxi|yangzhou|shaoxing|zibo|yichang|tangshan"]},
+ {q:"Name a city in India",c:"GEOGRAPHY",k:["city","india"],t:["mumbai/bombay|new delhi/delhi","bangalore/bengaluru|kolkata/calcutta|chennai/madras|agra|jaipur|hyderabad","pune|varanasi|ahmedabad|amritsar|udaipur|lucknow|kochi/cochin|mysore/mysuru|jodhpur|darjeeling|shimla|rishikesh","kanpur|nagpur|indore|bhopal|patna|surat|visakhapatnam|coimbatore|madurai|thiruvananthapuram/trivandrum|chandigarh|guwahati|srinagar|leh|jaisalmer|pushkar|haridwar|ooty|manali|pondicherry/puducherry|aurangabad|nashik|vadodara","bhubaneswar|ranchi|raipur|dehradun|gangtok|shillong|imphal|aizawl|kohima|itanagar|agartala|panaji|gwalior|jabalpur|allahabad/prayagraj|meerut|ludhiana|jalandhar|hampi|khajuraho"]},
+ {q:"Name a city in Australia",c:"GEOGRAPHY",k:["city","australia","town"],t:["sydney|melbourne","brisbane|perth|canberra|adelaide","gold coast|darwin|hobart|cairns","alice springs|newcastle|wollongong|geelong|townsville|sunshine coast|launceston|ballarat|bendigo|toowoomba|byron bay|broome|noosa","mackay|rockhampton|bundaberg|albury|wagga wagga|dubbo|kalgoorlie|mount isa|coober pedy|port hedland|karratha|devonport|burnie|mildura|orange|bathurst|katherine|tamworth"]},
+ {q:"Name a city in Brazil",c:"GEOGRAPHY",k:["city","brazil","municipality"],t:["rio de janeiro/rio|sao paulo","brasilia|salvador","manaus|recife|fortaleza|belo horizonte|curitiba|porto alegre","florianopolis|belem|natal|goiania|campinas|santos|foz do iguacu|maceio|joao pessoa|cuiaba|vitoria|sao luis|ouro preto|paraty","teresina|aracaju|campo grande|porto velho|rio branco|macapa|boa vista|palmas|londrina|joinville|blumenau|petropolis|niteroi|olinda|juiz de fora|uberlandia|ribeirao preto|sorocaba"]},
+ {q:"Name a city in Mexico",c:"GEOGRAPHY",k:["city","mexico","municipality"],t:["mexico city|cancun","guadalajara|tijuana|acapulco|monterrey","puerto vallarta|cabo san lucas/cabo|tulum|oaxaca|puebla|playa del carmen|merida|veracruz|juarez/ciudad juarez","chihuahua|mazatlan|san miguel de allende|guanajuato|queretaro|morelia|leon|toluca|cuernavaca|ensenada|la paz|hermosillo|culiacan|saltillo|aguascalientes|san luis potosi|zacatecas|durango|taxco|cozumel","villahermosa|tuxtla gutierrez|campeche|chetumal|xalapa|tampico|reynosa|matamoros|nuevo laredo|mexicali|tepic|colima|pachuca|tlaxcala|chilpancingo|san cristobal de las casas|valladolid|bacalar|todos santos"]},
+ {q:"Name a US city",c:"GEOGRAPHY",k:["city","united states","town"],t:["new york|los angeles|chicago|miami|las vegas","san francisco|boston|seattle|houston|dallas|atlanta|washington dc/washington|philadelphia|orlando","denver|phoenix|san diego|new orleans|nashville|detroit|austin|portland|honolulu|minneapolis|baltimore|pittsburgh|cleveland|st louis/saint louis|kansas city|salt lake city|san antonio","sacramento|charlotte|indianapolis|columbus|cincinnati|milwaukee|memphis|louisville|tampa|jacksonville|raleigh|richmond|albuquerque|tucson|oklahoma city|omaha|anchorage|boise|savannah|charleston|buffalo|el paso|fort worth","spokane|tacoma|reno|fargo|sioux falls|billings|cheyenne|duluth|burlington|portland maine|des moines|little rock|birmingham|jackson|knoxville|chattanooga|lexington|providence|hartford|wilmington|juneau|fairbanks|bozeman|missoula"]},
+ {q:"Name a mountain range",c:"GEOGRAPHY",k:["mountain","range","mountains"],t:["rocky mountains/rockies|himalayas|alps|andes","appalachian mountains/appalachians|sierra nevada|ural mountains/urals|pyrenees|smoky mountains/great smoky mountains","cascades/cascade range|atlas mountains|carpathians|alaska range|karakoram|hindu kush|caucasus|apennines|dolomites|blue ridge mountains|scottish highlands","brooks range|tian shan|altai mountains|zagros mountains|drakensberg|great dividing range|southern alps|teton range/tetons|wasatch|adirondacks|white mountains|ozarks|black hills|sierra madre|transantarctic mountains|vosges|jura mountains|balkan mountains|pamir mountains","ruwenzori/rwenzori|kunlun mountains|annamite range|western ghats|eastern ghats|aravalli range|vindhya range|ellsworth mountains|chugach mountains|sangre de cristo mountains|bighorn mountains|bitterroot range|olympic mountains|ouachita mountains"]},
+ {q:"Name a famous strait, canal or channel",c:"GEOGRAPHY",k:["strait","canal","channel","waterway"],t:["panama canal|suez canal|english channel","strait of gibraltar|bering strait|erie canal","bosphorus|strait of hormuz|strait of magellan|drake passage|strait of malacca","dardanelles|kiel canal|corinth canal|cook strait|bass strait|taiwan strait|korea strait|mozambique channel|strait of dover|north channel|hudson strait|davis strait|torres strait|strait of messina|grand canal","bab-el-mandeb/bab el mandeb|strait of otranto|denmark strait|la perouse strait|tsugaru strait|sunda strait|lombok strait|palk strait|strait of juan de fuca|cabot strait|canal du midi|rideau canal|caledonian canal|welland canal"]},
+ {q:"Name a landlocked country",c:"GEOGRAPHY",k:["landlocked","country"],t:["switzerland|austria","mongolia|nepal|bolivia|paraguay|afghanistan|hungary|czech republic/czechia","kazakhstan|ethiopia|uganda|zambia|zimbabwe|slovakia|serbia|luxembourg|liechtenstein|vatican city/vatican|san marino|andorra","rwanda|burundi|malawi|botswana|mali|niger|chad|burkina faso|central african republic|south sudan|laos|bhutan|uzbekistan|kyrgyzstan|tajikistan|turkmenistan|belarus|moldova|north macedonia/macedonia|armenia|azerbaijan|kosovo","lesotho|eswatini/swaziland"]},
+ {q:"Name a country that borders China",c:"GEOGRAPHY",k:["country","china","border"],t:["russia|india|north korea","mongolia|nepal|pakistan|vietnam","kazakhstan|laos|myanmar/burma|bhutan","afghanistan|kyrgyzstan","tajikistan"]},
+ {q:"Name a Caribbean island",c:"GEOGRAPHY",k:["island","caribbean"],t:["jamaica|cuba|puerto rico|bahamas","aruba|barbados|haiti|dominican republic|hispaniola|st lucia/saint lucia|trinidad|cayman islands/grand cayman","st thomas|turks and caicos|antigua|curacao|grenada|martinique|guadeloupe|st kitts/saint kitts|bonaire|tobago|st maarten/sint maarten/saint martin|virgin islands|st croix|st john|dominica","st barts/saint barthelemy|anguilla|montserrat|nevis|st vincent/saint vincent|the grenadines|providenciales|eleuthera|exuma|andros|abaco|bimini|vieques|culebra|isla margarita/margarita island|roatan","saba|sint eustatius/statia|barbuda|redonda|isla de la juventud|mustique|bequia|carriacou|petit martinique|marie-galante|les saintes|la desirade|jost van dyke|anegada|virgin gorda|tortola"]},
+ {q:"Name a country that starts with B",c:"GEOGRAPHY",k:["country","nation"],t:["brazil|belgium","bolivia|bahamas|bangladesh|bulgaria","belize|barbados|bhutan|bosnia and herzegovina/bosnia|belarus|botswana","benin|burundi|burkina faso|bahrain","brunei"]},
+ {q:"Name a famous city in Spain",c:"GEOGRAPHY",k:["city","spain","municipality"],t:["madrid|barcelona","seville/sevilla|valencia|malaga|granada","bilbao|toledo|cordoba|san sebastian|pamplona|salamanca|marbella|palma/palma de mallorca|zaragoza|alicante","cadiz|santiago de compostela|segovia|ronda|benidorm|tarragona|girona|murcia|valladolid|oviedo|santander|leon|burgos|avila|caceres|merida|almeria|jerez|la coruna/a coruna|vigo|las palmas|santa cruz de tenerife","cuenca|teruel|huesca|lleida|logrono|vitoria-gasteiz/vitoria|pontevedra|lugo|ourense|zamora|soria|guadalajara|albacete|badajoz|huelva|jaen|ceuta|melilla|sitges|tossa de mar"]}
+);
+
 </script>
 <script>
 // ================= Config =================
@@ -927,8 +956,12 @@ function markSeen(ids){const qs=ids.map(i=>PROMPTS[i].q);const s=store.get("oddb
 // Prompt deck: every prompt comes up once before any repeats (kept across sessions), drawn at random,
 // spreading categories within a draw and never repeating the category just played.
 let DECK_MEM=null;
-function deckDraw(n,avoidCat){
-  const all=PROMPTS.map(p=>p.q),valid=new Set(all);let d=store.get("otc.deck2",null)||DECK_MEM;
+const GEO_EXTRA=new Set(["Name a world landmark","Name a national park","Name a city that hosted the Olympics","Name a famous skyscraper"]);
+const isGeo=p=>getCat(p)==="GEOGRAPHY"||GEO_EXTRA.has(p.q);
+let DECK_GEO=null;
+function deckDraw(n,avoidCat,pool){
+  const geo=pool==="geo",DK=geo?"otc.deckGeo":"otc.deck2";
+  const all=(geo?PROMPTS.filter(isGeo):PROMPTS).map(p=>p.q),valid=new Set(all);let d=store.get(DK,null)||(geo?DECK_GEO:DECK_MEM);
   if(!d||!Array.isArray(d.left))d={left:[]};d.left=d.left.filter(q=>valid.has(q));
   const out=[],cats=new Set(avoidCat?[avoidCat]:[]);
   while(out.length<n&&out.length<all.length){
@@ -936,7 +969,7 @@ function deckDraw(n,avoidCat){
     let k=d.left.findIndex(q=>!cats.has(getCat(PROMPTS.find(p=>p.q===q))));if(k<0)k=0;
     const q=d.left.splice(k,1)[0];out.push(q);cats.add(getCat(PROMPTS.find(p=>p.q===q)));
   }
-  DECK_MEM=d;store.set("otc.deck2",d);
+  if(geo)DECK_GEO=d;else DECK_MEM=d;store.set(DK,d);
   return out.map(q=>PROMPTS.findIndex(p=>p.q===q));
 }
 function pickFresh(n){return deckDraw(n);}
@@ -2068,6 +2101,7 @@ function home(){
       <button class="mbtn m-ice" data-act="endless">${M.endless}${store.get("otc.endless",null)?`<small>RUN IN PROGRESS</small>`:eb?`<small>BEST ${eb}</small>`:""}</button>
       <button class="mbtn m-fire" data-act="rendless">${M.rendless}${store.get("otc.rendless",null)?`<small>RUN IN PROGRESS</small>`:rb?`<small>BEST ${rb}</small>`:""}</button>
       <button class="mbtn m-mint" data-act="practice">${M.practice}</button>
+      <button class="mbtn m-mint wide" data-act="geo">🌍 GEOGRAPHY<small>${PROMPTS.filter(isGeo).length} PLACE PROMPTS</small></button>
       <button class="mbtn m-nova wide" data-act="party">${M.party}</button>
     </div>
     <div class="menubar">
@@ -2175,52 +2209,68 @@ function soloResults(data,mode){
 }
 
 // ================= Endless (saved runs; your altitude/depth carries on) =================
-const runKey=m=>m==="rendless"?"otc.rendless":"otc.endless";
-const bestKey=m=>m==="rendless"?"otc.rendlessBest":m==="blitz"?"oddball.blitzBest":"oddball.endlessBest";
+const runKey=(m,geo=S&&S.geo)=>(m==="rendless"?"otc.rendless":"otc.endless")+(geo?"Geo":"");
+const bestKey=(m,geo=S&&S.geo)=>(m==="rendless"?"otc.rendlessBest":m==="blitz"?"oddball.blitzBest":"oddball.endlessBest")+(geo?"Geo":"");
 function saveRun(){if(!S||(S.mode!=="endless"&&S.mode!=="rendless"))return;S.log=S.log.slice(-40);store.set(runKey(S.mode),S);
   if(S.score>store.get(bestKey(S.mode),0))store.set(bestKey(S.mode),S.score);}
 function runAsk(mode){
-  const sv=store.get(runKey(mode),null);if(!sv||!sv.i)return mode==="rendless"?startREndless():startEndless();
+  const sv=store.get(runKey(mode,false),null);if(!sv||!sv.i)return mode==="rendless"?startREndless():startEndless();
   const m=$("modal");m.hidden=false;
   m.innerHTML=`<div class="glass"><h3 style="font-size:14px">${TH.modes[mode]}</h3><p class="hint">You have a run going: <b>${sv.score} pts</b> after ${sv.i} prompt${sv.i===1?"":"s"}, at ${esc(zoneAt(sv.score*K).n)}.</p>
     <div class="row" style="justify-content:center"><button class="pbtn c m-ice" data-act="runCont" data-m="${mode}">CONTINUE</button><button class="pbtn" data-act="runNew" data-m="${mode}">NEW RUN</button></div></div>`;
 }
-function startEndless(cont){
-  const sv=cont?store.get("otc.endless",null):null;
-  S=sv&&sv.mode==="endless"?sv:{mode:"endless",i:0,score:0,log:[],lastCat:null};if(!cont)store.set("otc.endless",null);
+function geoMenu(){
+  const n=PROMPTS.filter(isGeo).length,eb=store.get("oddball.endlessBestGeo",0),rb=store.get("otc.rendlessBestGeo",0),es=store.get("otc.endlessGeo",null),rs=store.get("otc.rendlessGeo",null);
+  showPanel(`
+    <div class="row" style="justify-content:space-between"><h2 style="font-size:16px">🌍 GEOGRAPHY</h2><button class="pbtn sm" data-act="home">◀ HOME</button></div>
+    <p class="hint">Only places: countries, capitals, cities, states, rivers, mountains, islands, lakes, straits and more. ${n} prompts. Rarer places score more.</p>
+    <div class="modegrid">
+      <button class="mbtn m-ice" data-act="geoGo" data-m="endless">ENDLESS<small>${es&&es.i?`RUN IN PROGRESS · ${es.score} PTS`:eb?`BEST ${eb}`:"one answer per prompt"}</small></button>
+      <button class="mbtn m-fire" data-act="geoGo" data-m="rendless">RAPID ENDLESS<small>${rs&&rs.i?`RUN IN PROGRESS · ${rs.score} PTS`:rb?`BEST ${rb}`:BLITZ_SECS+"s to name as many as you can"}</small></button>
+    </div>
+    <div class="glass card"><h3 style="font-size:13px">PROMPTS IN THIS MODE</h3><div class="found" style="justify-content:flex-start">${PROMPTS.filter(isGeo).map(p=>`<span class="tchip" style="--c:#7dd3fc">${esc(p.q.replace(/^Name (a|an) /,"").toUpperCase())}</span>`).join("")}</div></div>`);
+}
+function geoGo(mode){const sv=store.get(runKey(mode,true),null),start=c=>mode==="rendless"?startREndless(c,true):startEndless(c,true);
+  if(!sv||!sv.i)return start(false);
+  const m=$("modal");m.hidden=false;
+  m.innerHTML=`<div class="glass"><h3 style="font-size:14px">🌍 GEO ${TH.modes[mode]}</h3><p class="hint">You have a run going: <b>${sv.score} pts</b> after ${sv.i} prompt${sv.i===1?"":"s"}.</p>
+    <div class="row" style="justify-content:center"><button class="pbtn c m-ice" data-act="geoCont" data-m="${mode}">CONTINUE</button><button class="pbtn" data-act="geoNew" data-m="${mode}">NEW RUN</button></div></div>`;}
+function startEndless(cont,geo){
+  const key=runKey("endless",!!geo),sv=cont?store.get(key,null):null;
+  S=sv&&sv.mode==="endless"?sv:{mode:"endless",i:0,score:0,log:[],lastCat:null};S.geo=!!geo;if(!cont)store.set(key,null);
   jumpTo(S.score*K);endlessNext();}
-const endProg=()=>progHTML(`ENDLESS · #${S.i+1} · ${S.score} PTS`,0,0,null);
+const endProg=()=>progHTML(`${S.geo?"🌍 GEO ":""}ENDLESS · #${S.i+1} · ${S.score} PTS`,0,0,null);
 const runBtns=()=>`<div class="row" style="justify-content:center;margin-top:8px"><button class="pbtn sm" data-act="endRun">END RUN</button></div>`;
 function endlessNext(){
-  const pi=deckDraw(1,S.lastCat)[0],p=PROMPTS[pi];S.lastCat=getCat(p);let pts=0;
+  const pi=deckDraw(1,S.geo?null:S.lastCat,S.geo?"geo":null)[0],p=PROMPTS[pi];S.lastCat=getCat(p);let pts=0;
   playRound(p,{prog:endProg(),judge:localJudge(),manual:true,
     onPick:e=>{const t=e?e.tier:-1;pts=tierPts(t);S.score+=pts;S.log.push({pi,ans:e?e.display:"—",tier:t,ai:!!(e&&e.ai)});S.i++;saveRun();setScore(S.score,t);return{pts};},
-    after:e=>{$("prog").innerHTML=progHTML(`ENDLESS · ${S.i} DONE · ${S.score} PTS`,0,0,null);
-      resultCard(p,pi,e,pts,`ENDLESS · #${S.i}`,"NEXT PROMPT",()=>endlessNext(),runBtns());}});
+    after:e=>{$("prog").innerHTML=progHTML(`${S.geo?"🌍 GEO ":""}ENDLESS · ${S.i} DONE · ${S.score} PTS`,0,0,null);
+      resultCard(p,pi,e,pts,`${S.geo?"GEO ":""}ENDLESS · #${S.i}`,"NEXT PROMPT",()=>endlessNext(),runBtns());}});
 }
 function endRun(){
   if(!S)return home();const mode=S.mode;store.set(runKey(mode),null);
   const best=store.get(bestKey(mode),0),isBest=S.score>=best&&S.score>0;if(isBest){store.set(bestKey(mode),S.score);burst();}
-  const share=`${GAME} ${mode==="rendless"?"rapid endless":"endless"}: ${S.score} pts across ${S.i} prompts\n${S.log.slice(-14).map(r=>r.tier<0?"⬛":TIERS[r.tier].emoji).join("")}`;
+  const share=`${GAME} ${S.geo?"geography ":""}${mode==="rendless"?"rapid endless":"endless"}: ${S.score} pts across ${S.i} prompts\n${S.log.slice(-14).map(r=>r.tier<0?"⬛":TIERS[r.tier].emoji).join("")}`;
   showPanel(`
-    <div class="row" style="justify-content:space-between"><h2 style="font-size:15px">${TH.modes[mode]}</h2><button class="pbtn sm" data-act="home">◀ HOME</button></div>
+    <div class="row" style="justify-content:space-between"><h2 style="font-size:15px">${S.geo?"🌍 GEOGRAPHY · ":""}${TH.modes[mode]}</h2><button class="pbtn sm" data-act="home">◀ HOME</button></div>
     <div class="glass card center"><div class="lbl">RUN COMPLETE</div><div class="big">${S.score}</div>
       <div class="hint">${S.i} prompts · reached ${zoneAt(S.score*K).n} · ${isBest?"<b style='color:#fde047'>NEW BEST!</b>":"best "+best}</div></div>
     <div class="glass card">${S.log.slice(-8).reverse().map(r=>`<div class="rrow"><b>${esc(PROMPTS[r.pi].q)}</b><div class="ra">${esc(r.ans)}<br>${tchip(r.tier,r.n!=null?`${r.n} FOUND · +${r.pts}`:undefined)}</div></div>`).join("")}</div>
-    <div class="row"><button class="pbtn c m-ice" data-act="${mode==="rendless"?"rendlessNew":"endlessNew"}">NEW RUN</button><button class="pbtn" data-act="copy" data-share="${esc(share)}">COPY RESULT</button></div>`);
+    <div class="row"><button class="pbtn c m-ice" data-act="${S.geo?"geoGo":(mode==="rendless"?"rendlessNew":"endlessNew")}" data-m="${mode}">NEW RUN</button><button class="pbtn" data-act="copy" data-share="${esc(share)}">COPY RESULT</button></div>`);
 }
 
 // ================= Rapid Fire / Rapid Endless =================
 function startBlitz(){S={mode:"blitz",ids:pickFresh(BLITZ_PROMPTS),i:0,score:0,found:[]};jumpTo(0);blitzRound();}
-function startREndless(cont){
-  const sv=cont?store.get("otc.rendless",null):null;
-  S=sv&&sv.mode==="rendless"?sv:{mode:"rendless",i:0,score:0,log:[],lastCat:null};if(!cont)store.set("otc.rendless",null);
+function startREndless(cont,geo){
+  const key=runKey("rendless",!!geo),sv=cont?store.get(key,null):null;
+  S=sv&&sv.mode==="rendless"?sv:{mode:"rendless",i:0,score:0,log:[],lastCat:null};S.geo=!!geo;if(!cont)store.set(key,null);
   S.ids=[];S.found=[];jumpTo(S.score*K);blitzRound();}
-const blitzProg=()=>S.mode==="rendless"?progHTML(`RAPID ENDLESS · #${S.i+1} · ${S.score} PTS`,0,0,null)
+const blitzProg=()=>S.mode==="rendless"?progHTML(`${S.geo?"🌍 GEO ":""}RAPID ENDLESS · #${S.i+1} · ${S.score} PTS`,0,0,null)
   :progHTML(`RAPID FIRE · ${S.i+1}/${BLITZ_PROMPTS} · ${S.score} PTS`,BLITZ_PROMPTS,S.i,S.found.slice(0,S.i).map(f=>f.length?Math.max(...f.map(x=>x.tier)):-1));
 function blitzRound(){
   const RE=S.mode==="rendless";
-  if(RE){S.ids=[deckDraw(1,S.lastCat)[0]];S.found=[];}
+  if(RE){S.ids=[deckDraw(1,S.geo?null:S.lastCat,S.geo?"geo":null)[0]];S.found=[];}
   else if(S.i>=S.ids.length)return blitzEnd();
   const k=RE?0:S.i,pi=S.ids[k],p=PROMPTS[pi],total=BLITZ_SECS*10,C=157.08;let left=total,checking=0,done=false,count=3,asking=null;
   if(RE)S.lastCat=getCat(p);
@@ -3453,8 +3503,8 @@ const ACT={
   home:()=>home(),landing:()=>landing(),atab:b=>cupHub(b.dataset.c),otc:()=>home(),cuphub:()=>cupHub(),mg:b=>mgStart(b.dataset.id),mgQuit:()=>cupHub(),mgAgain:()=>MG&&mgStart(MG.id),
   fightMode:b=>{MGAMES.fight.cfg.mode=b.dataset.v;mgStart("fight");},fightDiff:b=>{MGAMES.fight.cfg.diff=b.dataset.v;mgStart("fight");},fightPl:b=>{MGAMES.fight.cfg.humans=+b.dataset.n;mgStart("fight");},
   catchN:b=>{MGAMES.catch.humans=+b.dataset.n;mgStart("catch");},theme3:b=>{setTheme(b.dataset.t);landing();},cup:()=>cupIntro(),cupGo:()=>startCup(),daily:()=>startSolo("daily"),practice:()=>startSolo("practice"),endless:()=>runAsk("endless"),rendless:()=>runAsk("rendless"),blitz:()=>startBlitz(),
-  runCont:b=>{closeModal();b.dataset.m==="rendless"?startREndless(true):startEndless(true);},runNew:b=>{closeModal();b.dataset.m==="rendless"?startREndless():startEndless();},
-  endRun:()=>endRun(),endlessNew:()=>startEndless(),rendlessNew:()=>startREndless(),party:()=>{leaveNet();partyMenu();},
+  runCont:b=>{closeModal();b.dataset.m==="rendless"?startREndless(true,false):startEndless(true,false);},runNew:b=>{closeModal();b.dataset.m==="rendless"?startREndless(false,false):startEndless(false,false);},
+  endRun:()=>endRun(),geo:()=>geoMenu(),geoGo:b=>{closeModal();geoGo(b.dataset.m);},geoCont:b=>{closeModal();b.dataset.m==="rendless"?startREndless(true,true):startEndless(true,true);},geoNew:b=>{closeModal();b.dataset.m==="rendless"?startREndless(false,true):startEndless(false,true);},endlessNew:()=>startEndless(),rendlessNew:()=>startREndless(),party:()=>{leaveNet();partyMenu();},
   saved:()=>soloResults(store.get("oddball.daily."+today(),null),"daily"),settings:()=>settings(),skins:()=>skins(),palettes:()=>palettes(),pickPal:b=>{store.set("otc.palette",b.dataset.id);applyPalette();palettes();},
   perf:b=>{PERF=b.dataset.v;store.set("otc.perf",PERF);HQ=PERF==="low"?0:1;slowFrames=0;resize();settings();},
   pickSkin:b=>{store.set("otc.skin."+THEME,b.dataset.id);skins();},
