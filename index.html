@@ -118,6 +118,11 @@ input:focus,select:focus{outline:none;--bc:var(--acc)}
 .tchip.cup{animation:cupHue 1.6s linear infinite}
 #fx .glow.cup{font-size:clamp(24px,6.4vw,54px)}
 .fixw{color:var(--hl)}
+#ppc{width:192px;height:128px;image-rendering:pixelated;display:block;margin:4px auto}
+.pphold{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 10px;font-size:18px}.pphold b{font-family:var(--head);font-weight:400;letter-spacing:.08em}
+.ppmeter{position:relative;height:12px;background:rgba(0,0,0,.3);margin:8px 0 2px}.ppmeter i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--p1),#ff8fe0)}
+.ppmeter span{position:relative;font-family:var(--head);font-size:8px;letter-spacing:.1em;display:block;text-align:center;line-height:12px;color:#fff}
+#card.ppdanger{box-shadow:0 0 0 2px #f87171,0 0 30px rgba(248,113,113,.6)}
 .poll{padding:14px}.pollh{font-size:12px;letter-spacing:.1em;margin:0}
 .pollopts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 .popt{position:relative;overflow:hidden;text-align:left;padding:7px 10px;border:0;background:rgba(255,255,255,.05);color:var(--ink);font-family:var(--body);cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
@@ -1746,8 +1751,11 @@ function playRound(p,o){
     if(my!==tok||locked)return;
     checking=false;inp.disabled=false;go.disabled=false;inp.focus();
     if(r&&r.error)return reject("CHECK FAILED: "+esc(r.error));
+    if(r&&r.invalid&&r.noCheck&&o.manual){fb.innerHTML=`<span class="err">NOT IN THE WORD BANK.</span> <span class="hint">AI checking is off here (Settings ⚙).</span> <button class="pbtn sm c m-sun" id="cntIt">COUNT IT ANYWAY</button>`;
+      sfx.bad();$("cntIt").onclick=()=>{const e={display:txt.toLowerCase(),tier:2,keys:[norm(txt)],ai:true,manual:true};finish(e);};inp.select();return;}
     if(r&&r.invalid)return reject("NOT VALID"+(r.why?": "+esc(r.why):""));
-    if(r&&r.display)return finish(r);
+    if(r&&r.display&&r.fixAsk){asking={yes:()=>{asking=null;finish(r.orig);},no:()=>{asking=null;reject("OK, TRY ANOTHER.");}};askFix(fb,r.orig,asking.yes,asking.no);return;}
+    if(r&&r.display)return finish(r.orig||r);
     reject("NOT ON THE LIST. TRY ANOTHER.");
   };
   go.onclick=submit;inp.onkeydown=ev=>{if(ev.key==="Enter"){ev.preventDefault();submit();}
@@ -1839,9 +1847,15 @@ function wikiFit(p,text,pg){
 async function wikiFind(p,text){
   let pg=null;const kws=kwOf(p);
   for(const q of [text,text+" "+(p.k?p.k[0]:kws[0]||"")]){const res=await wikiSearch(q);if(res===null)return null;pg=res.find(x=>wikiFit(p,text,x));if(pg)break;}
+  let fixed=false;
+  if(!pg){// typo? ask Wikipedia's fuzzy title search for the closest real titles and check those
+    const os=await wget("https://en.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&profile=fuzzy&limit=4&namespace=0&search="+encodeURIComponent(text));
+    const titles=(os&&os[1])||[];
+    for(const ti of titles){const tn=norm(String(ti).replace(/\s*\(.*\)$/,""));if(lev(compact(tn),compact(norm(text)))>Math.max(2,Math.floor(compact(norm(text)).length/3)))continue;
+      const res=await wikiSearch(ti);if(!res)continue;pg=res.find(x=>wikiFit(p,ti,x));if(pg){fixed=true;break;}}}
   if(!pg)return{fit:false};
   const v=await pageViews(pg.title);if(v===null)return null;
-  return{fit:true,title:pg.title,views:v};
+  return{fit:true,title:pg.title,views:v,fixed};
 }
 async function calib(p){
   if(WIKI.cal[p.q])return WIKI.cal[p.q];if(WIKI.pend[p.q])return WIKI.pend[p.q];
@@ -1859,7 +1873,7 @@ async function viewTier(p,v){
 async function wikiLook(p,text){
   const ck=p.q+"|"+norm(text);if(WIKI.cache[ck])return WIKI.cache[ck];
   const f=await wikiFind(p,text);if(!f)return null;
-  const out=f.fit?{fit:true,title:f.title,views:f.views,tier:await viewTier(p,f.views)}:{fit:false};
+  const out=f.fit?{fit:true,title:f.title,views:f.views,fixed:!!f.fixed,tier:await viewTier(p,f.views)}:{fit:false};
   const ks=Object.keys(WIKI.cache);if(ks.length>3000)delete WIKI.cache[ks[0]];
   WIKI.cache[ck]=out;store.set("otc.wiki",WIKI.cache);return out;
 }
@@ -1876,7 +1890,10 @@ function wikiEntry(p,text,w){
   const e={display:String(w.title).replace(/\s*\(.*\)$/,"").toLowerCase(),tier:w.tier==null?2:w.tier,keys:[norm(text),norm(w.title)].filter(Boolean),ai:true,wiki:true,_wr:1};
   idxOf(p);const known=match(e.display,p);if(known)return known;buildIndex(p).push(e);p._cx=null;return learn(p,e);
 }
-async function smartJudge(p,text){
+// true when the judged answer is a correction of what was typed (so we ask before accepting)
+const isFix=(text,disp)=>{const a=compact(norm(text)),b=compact(norm(disp||""));return!!b&&a!==b&&stem(a)!==stem(b)&&!b.includes(a)&&!a.includes(b);};
+async function smartJudge(p,text){const r=await smartJudge0(p,text);if(r&&r.display&&isFix(text,r.display))return Object.assign(Object.create(Object.getPrototypeOf(r)),r,{fixAsk:true,orig:r});return r;}
+async function smartJudge0(p,text){
   const w=canWiki(p)?await wikiLook(p,text):null;
   if(aiReady()){
     let r=await judgeAI(p,text,false,w);if(r&&r.error==="unreadable reply")r=await judgeAI(p,text,true,w);
@@ -1886,7 +1903,7 @@ async function smartJudge(p,text){
     return r;
   }
   if(w&&w.fit)return wikiEntry(p,text,w);
-  if(!canWiki(p))return{invalid:true,why:"not on the list"};
+  if(!canWiki(p))return{invalid:true,noCheck:true,why:"not in the word bank, and AI checking isn't set up on this device"};
   return w?{invalid:true,why:"no matching Wikipedia article"}:{error:"couldn't reach Wikipedia"};
 }
 const judgeLabel=()=>aiReady()?"AI CHECK ON":wikiOn()?"WIKIPEDIA CHECK ON":"";
@@ -2005,7 +2022,7 @@ async function oaJudge(base,key,ask,prefer,jsonMode){
 
 // ================= Menu =================
 function home(){
-  mgClose();if(N)leaveNet();L=null;S=null;CUP=null;MENU=true;
+  mgClose();if(N)leaveNet();if(PP)PP.live=false;L=null;S=null;CUP=null;MENU=true;
   jumpTo(0);SC.parts=[];renderSide(null);
   const done=store.get("oddball.daily."+today(),null),st=store.get("oddball.stats",{played:0,best:0,streak:0}),eb=store.get("oddball.endlessBest",0),bb=store.get("oddball.blitzBest",0),rb=store.get("otc.rendlessBest",0);
   const M=TH.modes,d=new Date(),num=Math.max(1,Math.floor((new Date(today())-new Date("2026-10-29"))/864e5)+1);
@@ -2102,7 +2119,7 @@ const soloProg=()=>progHTML(`${S.mode==="daily"?TH.modes.daily:TH.modes.practice
 function soloNext(){
   if(S.i>=S.ids.length)return soloEnd();
   const pi=S.ids[S.i],p=PROMPTS[pi];let pts=0;
-  playRound(p,{prog:soloProg(),judge:localJudge(),
+  playRound(p,{prog:soloProg(),judge:localJudge(),manual:S.mode!=="daily",
     onPick:e=>{const t=e?e.tier:-1;pts=t<0?0:TIERS[t].pts;S.score+=pts;S.log.push({pi,ans:e?e.display:"—",tier:t,ai:!!(e&&e.ai)});setScore(S.score,t);return{pts};},
     after:e=>{$("prog").innerHTML=soloProg();const last=S.i>=S.ids.length-1;
       resultCard(p,pi,e,pts,`PROMPT ${S.i+1} OF ${ROUNDS}`,last?"SEE RESULTS":"NEXT PROMPT",()=>{S.i++;soloNext();});}});
@@ -2145,7 +2162,7 @@ const endProg=()=>progHTML(`ENDLESS · #${S.i+1} · ${S.score} PTS`,0,0,null);
 const runBtns=()=>`<div class="row" style="justify-content:center;margin-top:8px"><button class="pbtn sm" data-act="endRun">END RUN</button></div>`;
 function endlessNext(){
   const pi=deckDraw(1,S.lastCat)[0],p=PROMPTS[pi];S.lastCat=getCat(p);let pts=0;
-  playRound(p,{prog:endProg(),judge:localJudge(),
+  playRound(p,{prog:endProg(),judge:localJudge(),manual:true,
     onPick:e=>{const t=e?e.tier:-1;pts=tierPts(t);S.score+=pts;S.log.push({pi,ans:e?e.display:"—",tier:t,ai:!!(e&&e.ai)});S.i++;saveRun();setScore(S.score,t);return{pts};},
     after:e=>{$("prog").innerHTML=progHTML(`ENDLESS · ${S.i} DONE · ${S.score} PTS`,0,0,null);
       resultCard(p,pi,e,pts,`ENDLESS · #${S.i}`,"NEXT PROMPT",()=>endlessNext(),runBtns());}});
@@ -2207,7 +2224,8 @@ function blitzRound(){
     checking++;fb.innerHTML=`CHECKING "${esc(txt)}"… <span class="hint">(clock paused)</span>`;
     const r=await judge(p,txt);checking=Math.max(0,checking-1);
     if(my!==tok||done)return;
-    if(r&&r.display)return add(r);
+    if(r&&r.display&&r.fixAsk){asking={yes:()=>{asking=null;fb.innerHTML="";add(r.orig);inp.focus();},no:()=>{asking=null;fb.innerHTML="";inp.focus();}};askFix(fb,r.orig,asking.yes,asking.no);return;}
+    if(r&&r.display)return add(r.orig||r);
     fb.innerHTML=`<span class="err">${r&&r.error?"CHECK FAILED: "+esc(r.error):`"${esc(txt)}" ISN'T VALID${r&&r.why?": "+esc(r.why):""}`}</span>`;sfx.bad();
   };
   const submit=()=>{
@@ -2280,7 +2298,8 @@ function rapidRound(p,o){
     if(!o.judge){fb.innerHTML=`<span class="err">"${esc(txt)}" ISN'T ON THE LIST</span>`;sfx.bad();return;}
     checking++;fb.innerHTML=`CHECKING "${esc(txt)}"… <span class="hint">(clock paused)</span>`;
     const r=await o.judge(p,txt);checking=Math.max(0,checking-1);if(my!==tok||done)return;
-    if(r&&r.display)return add(r);
+    if(r&&r.display&&r.fixAsk){asking={yes:()=>{asking=null;fb.innerHTML="";add(r.orig);inp.focus();},no:()=>{asking=null;fb.innerHTML="";inp.focus();}};askFix(fb,r.orig,asking.yes,asking.no);return;}
+    if(r&&r.display)return add(r.orig||r);
     fb.innerHTML=`<span class="err">${r&&r.error?"CHECK FAILED: "+esc(r.error):`"${esc(txt)}" ISN'T VALID${r&&r.why?": "+esc(r.why):""}`}</span>`;sfx.bad();
   };
   const submit=()=>{if(done)return;if(asking)return asking.yes();const txt=inp.value.trim();if(!txt)return;inp.value="";
@@ -2298,8 +2317,8 @@ function scoreRapid(names,ans){
     return{name,display:list.length?`${list.length} found`:"—",tier:best,pts,items:items.sort((a,b)=>b[1]-a[1]).slice(0,12),n:list.length};});
 }
 const roundsLabel=n=>n?String(n):"∞";
-const modeSeg=(cur,act)=>`<div class="seg">${[["classic","CLASSIC"],["rapid","RAPID FIRE"]].map(([v,l])=>`<button class="pbtn ${cur===v?"on":""}" data-act="${act}" data-v="${v}">${l}</button>`).join("")}</div>
-  <p class="hint">${cur==="rapid"?`${BLITZ_SECS}s per prompt to name as many as you can. Rarer answers pay much more.`:"One answer per prompt. Match someone and you both get half."}</p>`;
+const modeSeg=(cur,act,puf)=>`<div class="seg">${[["classic","CLASSIC"],["rapid","RAPID FIRE"]].concat(puf?[["puffer","🐡 PUFFER PARTY"]]:[]).map(([v,l])=>`<button class="pbtn ${cur===v?"on":""}" data-act="${act}" data-v="${v}">${l}</button>`).join("")}</div>
+  <p class="hint">${cur==="puffer"?"Pass the puffer! Only the holder answers. A new answer passes it on; if the secret fuse pops on you, you lose a heart. Last one floating wins.":cur==="rapid"?`${BLITZ_SECS}s per prompt to name as many as you can. Rarer answers pay much more.`:"One answer per prompt. Match someone and you both get half."}</p>`;
 const roundSeg=(cur,act)=>`<div class="seg">${[5,7,10,0].map(n=>`<button class="pbtn ${cur===n?"on":""}" data-act="${act}" data-n="${n}">${roundsLabel(n)}</button>`).join("")}</div>${cur===0?`<p class="hint">Endless: keeps going until you press END GAME.</p>`:""}`;
 
 // Live scoreboard on the right (multiplayer only). rows: [{name,score,st,me,turn}]
@@ -2314,11 +2333,11 @@ function revealCard(d,meName,foot,ms){
     <div class="examples">${d.rapid?"Answers someone else also named score half.":"Matching answers score half."} Rarest picks: <b>${examples(d.pi).map(esc).join(", ")}</b></div>
     ${foot||""}${ms?`<div class="cdbar"><i style="animation-duration:${ms}ms"></i></div>`:""}</div>`,{side:true});
 }
-function finalPanel(board,names,foot){
+function finalPanel(board,names,foot,title){
   const medals=["1ST","2ND","3RD"];burst(70);
   showPanel(`
-    <div class="glass card center">${av(board[0].name,names.indexOf(board[0].name),true)}<div class="lbl">${TH.furthest}</div>
-      <div class="big" style="font-size:36px">${esc(board[0].name)}</div><div class="hint">${board[0].score} pts</div></div>
+    <div class="glass card center">${av(board[0].name,names.indexOf(board[0].name),true)}<div class="lbl">${title||TH.furthest}</div>
+      <div class="big" style="font-size:36px">${esc(board[0].name)}</div><div class="hint">${typeof board[0].score==="number"?board[0].score+" pts":board[0].score}</div></div>
     <div class="glass card"><div class="plist">${board.map((b,k)=>`<div class="prow"><span class="medal">${medals[k]||k+1}</span>${av(b.name,names.indexOf(b.name))}<b class="grow">${esc(b.name)}</b><b>${b.score}</b></div>`).join("")}</div></div>
     ${foot}`);
 }
@@ -2330,6 +2349,7 @@ function partyMenu(){
       <button class="pbtn c m-nova" data-act="host">CREATE ROOM</button>
       <div class="row" style="margin-top:12px"><input id="pcode" maxlength="4" placeholder="CODE" style="max-width:150px;text-transform:uppercase;letter-spacing:.25em;font-family:var(--head)"><button class="pbtn c m-ice" data-act="join">JOIN</button></div>
       <div id="perr" class="hint err"></div></div>
+    <div class="glass card"><h3 style="font-size:13px">🐡 PUFFER PARTY</h3><p class="hint">Pass the puffer around one device. Say a new answer before it pops! 2–10 players.</p><button class="pbtn c m-nova" data-act="puffer">PLAY PUFFER PARTY</button></div>
     <div class="glass card"><h3 style="font-size:13px">PASS &amp; PLAY</h3><p class="hint">Share one device and take turns.</p><button class="pbtn c m-sun" data-act="local">SET UP PLAYERS</button></div>`);
 }
 function getName(){const el=$("pname"),v=el.value.trim().slice(0,16);
@@ -2467,7 +2487,7 @@ function connecting(t){showPanel(`<div class="glass card center"><div class="orb
 function netError(msg){leaveNet();showPanel(`
   <div class="glass card center"><h3 style="font-size:14px">CONNECTION PROBLEM</h3><p class="hint">${esc(msg)}</p>
   <div class="row" style="justify-content:center"><button class="pbtn c m-nova" data-act="party">BACK TO PARTY</button><button class="pbtn" data-act="home">HOME</button></div></div>`);}
-function leaveNet(){if(!N)return;const n=N;N=null;clearTimeout(n.deadline);clearTimeout(n.joinTimer);clearTimeout(n.auto);try{n.peer.destroy();}catch(e){}
+function leaveNet(){if(!N)return;const n=N;N=null;clearInterval(n.ppTimer);if(PPN)PPN.live=false;clearTimeout(n.deadline);clearTimeout(n.joinTimer);clearTimeout(n.auto);try{n.peer.destroy();}catch(e){}
   if(n.relay){if(!n.host)n.relay.bye("host",{t:"bye"});n.relay.close();}renderSide(null);}
 const names=()=>N.host?N.players.map(p=>p.name):(N.names||[]);
 function broadcast(m){let r=false;N.players.forEach(p=>{if(!p.conn)return;if(p.conn.relay){r=true;return;}if(p.conn.open)try{p.conn.send(m);}catch(e){}});if(r&&N.relay)N.relay.pub("*",m);}
@@ -2497,12 +2517,13 @@ function hostConn(c){
   c.on("data",d=>{if(!N||!N.host||!d)return;
     if(d.t==="hello"){
       if(N.players.some(p=>p.id===c.peer))return;
-      if(N.started||N.players.length>=MAX_PLAYERS){try{c.send({t:"full",reason:N.started?"That game already started.":"That room is full (6 players max)."});}catch(e){}setTimeout(()=>c.close(),500);return;}
+      if(N.started||N.players.length>=(N.mode==="puffer"?10:MAX_PLAYERS)){try{c.send({t:"full",reason:N.started?"That game already started.":"That room is full (6 players max)."});}catch(e){}setTimeout(()=>c.close(),500);return;}
       const base=String(d.name||"Player").slice(0,16);let nm=base,k=2;while(N.players.some(p=>p.name===nm))nm=base+" "+k++;
       N.players.push({id:c.peer,name:nm,score:0,conn:c});c.send({t:"welcome",name:nm});pushLobby();
     } else if(d.t==="ans"&&d.i===N.i&&!N.answers[c.peer]&&N.players.some(p=>p.id===c.peer)){
       N.answers[c.peer]=Array.isArray(d.list)?{list:d.list.slice(0,40).map(x=>({display:String(x.display).slice(0,40),tier:Math.max(0,Math.min(5,parseInt(x.tier)||0))}))}
         :{display:String(d.display).slice(0,40),tier:Math.max(-1,Math.min(5,parseInt(d.tier)))};pushBoard();checkDone();
+    } else if(d.t==="pp_ans"){ppHAnswer(c.peer,d);
     } else if(d.t==="judge"){
       const p=PROMPTS[N.ids&&N.ids[d.i]],send=res=>{try{c.send({t:"verdict",id:d.id,res});}catch(e){}};
       if(!p||!(aiReady()||wikiOn())||d.i!==N.i)return send({error:"the host's checking is off"});
@@ -2520,14 +2541,16 @@ function lobby(){
     <div class="glass card center"><div class="lbl">ROOM CODE</div><div class="code">${N.code}</div>
       <p class="hint">${NET_MODE==="room"?"Friends open this same page (share it from Claude's Share menu), choose Party → Join, and enter this code.":"Friends open their copy of the game, choose Party → Join, and enter this code."}</p></div>
     <div class="glass card"><h3 style="font-size:13px">PLAYERS</h3><div class="plist">${nm.map((n,i)=>`<div class="prow">${av(n,i)}<b class="grow">${esc(n)}</b>${i===0?`<span class="hint">host</span>`:""}</div>`).join("")}</div></div>
-    ${host?`<div class="glass card"><h3 style="font-size:13px">MODE</h3>${modeSeg(N.mode||"classic","nmode")}</div>
-      <div class="glass card"><h3 style="font-size:13px">ROUNDS</h3>${roundSeg(N.rounds,"nrounds")}
+    ${host?`<div class="glass card"><h3 style="font-size:13px">MODE</h3>${modeSeg(N.mode||"classic","nmode",true)}</div>
+      <div class="glass card">${N.mode==="puffer"?`<h3 style="font-size:13px">HEARTS EACH</h3><div class="seg">${[1,2,3,4,5].map(v=>`<button class="pbtn sm ${(N.ppHearts||2)===v?"on":""}" data-act="nppH" data-n="${v}">${v}</button>`).join("")}</div>
+        <h3 style="font-size:13px;margin-top:10px">MINIMUM TURN</h3><div class="seg">${[4,8,12,15].map(v=>`<button class="pbtn sm ${(N.ppMin||8)===v?"on":""}" data-act="nppM" data-n="${v}">${v}s</button>`).join("")}</div>`
+        :`<h3 style="font-size:13px">ROUNDS</h3>${roundSeg(N.rounds,"nrounds")}`}
         <p class="hint">AI checking: ${NET_MODE==="room"?"each player's own Claude checks their answers.":aiReady()?"on (your AI"+(wikiOn()?" + Wikipedia":"")+" checks for everyone)":wikiOn()?"Wikipedia (your device checks for everyone)":"off (word bank only)"}</p></div>
       <div class="row"><button class="pbtn c m-nova big" data-act="hostStart" ${nm.length<2?"disabled":""}>START ${TH.go}</button><button class="pbtn" data-act="leave">CLOSE ROOM</button></div>
       ${nm.length<2?`<p class="hint">Waiting for at least one friend to join…</p>`:""}`
     :`<div class="glass card center"><div class="orbit"></div><p class="hint">Waiting for the host to start…</p><button class="pbtn sm" data-act="leave">LEAVE</button></div>`}`);
 }
-function hostStart(){N.started=true;N.players.forEach(p=>p.score=0);N.ids=N.rounds?pickFresh(N.rounds):[];N.mode=N.mode||"classic";N.i=-1;N.revealed=-1;N.ai=NET_MODE==="room"?false:(aiReady()||wikiOn());
+function hostStart(){if(N.mode==="puffer"){N.started=true;broadcast({t:"start",names:names()});jumpTo(0);return ppHostStart();}N.started=true;N.players.forEach(p=>p.score=0);N.ids=N.rounds?pickFresh(N.rounds):[];N.mode=N.mode||"classic";N.i=-1;N.revealed=-1;N.ai=NET_MODE==="room"?false:(aiReady()||wikiOn());
   broadcast({t:"start",names:names()});jumpTo(0);hostNextRound();}
 function hostNextRound(){
   clearTimeout(N.auto);N.i++;
@@ -2546,7 +2569,7 @@ function hostReveal(){
   N.auto=setTimeout(()=>{if(N&&N.host)hostNextRound();},m.ms+400);
 }
 function hostEnd(){const m={t:"end",board:N.players.map(p=>({name:p.name,score:p.score})).sort((a,b)=>b.score-a.score),names:names()};broadcast(m);netFinal(m);}
-function hostAgain(){N.started=false;N.i=-1;N.revealed=-1;jumpTo(0);pushLobby();}
+function hostAgain(){clearInterval(N.ppTimer);if(N.pp)N.pp.live=false;if(PPN)PPN.live=false;N.started=false;N.i=-1;N.revealed=-1;jumpTo(0);pushLobby();}
 
 async function joinRoom(){
   const name=getName();if(!name)return;
@@ -2591,6 +2614,9 @@ function clientData(d){
     case "verdict":{const f=N.pending[d.id];if(f){delete N.pending[d.id];f(d.res);}break;}
     case "reveal":netReveal(d);break;
     case "end":netFinal(d);break;
+    case "pp":ppNetApply(d);break;
+    case "pp_rej":ppNetReject(d.msg);break;
+    case "pp_end":ppNetEnd(d);break;
   }
 }
 function askHost(p,text){
@@ -3403,13 +3429,13 @@ const ACT={
   aiSave:()=>{aiSave();settings("Saved ✓");},aiTest:()=>aiTest(),aiClear:()=>{store.set("oddball.aicache",{});LEARN={};store.set("otc.learned",{});PROMPTS.forEach(p=>{delete p.idx;p._ln=0;p._cx=null;});$("aimsg").textContent="Forgotten ✓";},
   sound:()=>{SND.on=!SND.on;store.set("oddball.sound",SND.on);updSnd();},soundSet:()=>{ACT.sound();settings();},
   copy:b=>{try{navigator.clipboard.writeText(b.dataset.share).then(()=>b.textContent="COPIED!",()=>b.textContent="COPY BLOCKED");}catch(e){}},
-  abort:()=>abortAsk(),abortYes:()=>{closeModal();leaveNet();CUP?cupHub():home();},closeModal:()=>closeModal(),
+  abort:()=>abortAsk(),abortYes:()=>{closeModal();leaveNet();if(PP&&PP.live){PP.live=false;return partyMenu();}CUP?cupHub():home();},closeModal:()=>closeModal(),
   host:()=>hostRoom(),join:()=>joinRoom(),leave:()=>{leaveNet();home();},
   local:()=>{L={names:["",""],rounds:7,mode:"classic"};localSetup();},lmode:b=>{syncNames();L.mode=b.dataset.v;localSetup();},localEnd:()=>localFinal(),
   addp:()=>{syncNames();L.names.push("");localSetup();},rmp:b=>{syncNames();L.names.splice(+b.dataset.i,1);localSetup();},
   lrounds:b=>{syncNames();L.rounds=+b.dataset.n;localSetup();},startLocal:()=>startLocal(),ready:()=>localTurn(),
   localAgain:()=>beginLocal(),
-  nrounds:b=>{N.rounds=+b.dataset.n;lobby();},nmode:b=>{N.mode=b.dataset.v;lobby();},hostEndNow:()=>{clearTimeout(N.auto);clearTimeout(N.deadline);hostEnd();},hostStart:()=>hostStart(),hostNext:()=>{clearTimeout(N.auto);hostNextRound();},again:()=>hostAgain()
+  nrounds:b=>{N.rounds=+b.dataset.n;lobby();},nmode:b=>{N.mode=b.dataset.v;lobby();},nppH:b=>{N.ppHearts=+b.dataset.n;lobby();},nppM:b=>{N.ppMin=+b.dataset.n;lobby();},hostEndNow:()=>{clearTimeout(N.auto);clearTimeout(N.deadline);hostEnd();},hostStart:()=>hostStart(),hostNext:()=>{clearTimeout(N.auto);hostNextRound();},again:()=>hostAgain()
 };
 document.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(b&&!b.disabled&&ACT[b.dataset.act])ACT[b.dataset.act](b);});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="pcode")joinRoom();if(e.key==="Escape"&&!$("modal").hidden)closeModal();});
@@ -3543,6 +3569,155 @@ function pollHTML(){
 function pollRender(){const box=$("pollBox");if(box)box.outerHTML=pollHTML();}
 Object.assign(ACT,{pollVote:b=>pollVote(b.dataset.o),pollAll:()=>{POLL.all=!POLL.all;pollRender();}});
 pollStart();
+
+// ================= PUFFER PARTY (pass the puffer, one device) =================
+// Holder names an answer nobody has said for this prompt to pass the puffer on. A hidden fuse
+// (12–30s) keeps burning; whoever holds it when it pops loses a heart. Last one floating wins.
+let PP=null;
+function ppSetup(msg){
+  PP=PP&&PP.names?PP:{names:["",""],hearts:2,minT:8,heartAt:300};
+  const seg=(cur,act,vals,lab)=>`<div class="seg">${vals.map(v=>`<button class="pbtn sm ${cur===v?"on":""}" data-act="${act}" data-n="${v}">${lab?lab(v):v}</button>`).join("")}</div>`;
+  showPanel(`
+    <div class="row" style="justify-content:space-between"><h2 style="font-size:16px">🐡 PUFFER PARTY</h2><button class="pbtn sm" data-act="party">◀ BACK</button></div>
+    <p class="hint">Pass the puffer! Name an answer nobody has said yet to pass it to the next player. The fuse is secret. If it pops on you, you lose a heart. Last one floating wins. Rare answers fill your meter for a spare heart.</p>
+    <div class="glass card"><h3 style="font-size:13px">PLAYERS (2–10)</h3><div class="plist">${PP.names.map((n,i)=>`<div class="row">${av(n||String(i+1),i)}<input class="ppname" data-i="${i}" maxlength="16" value="${esc(n)}" placeholder="Player ${i+1}">
+      ${PP.names.length>2?`<button class="pbtn sm" data-act="ppRm" data-i="${i}">✕</button>`:""}</div>`).join("")}</div>
+      ${PP.names.length<10?`<button class="pbtn sm" style="margin-top:12px" data-act="ppAdd">+ ADD PLAYER</button>`:""}</div>
+    <div class="glass card"><h3 style="font-size:13px">HEARTS EACH</h3>${seg(PP.hearts,"ppHearts",[1,2,3,4,5])}
+      <h3 style="font-size:13px;margin-top:12px">MINIMUM TURN</h3>${seg(PP.minT,"ppMin",[4,8,12,15],v=>v+"s")}<p class="hint">Catching the puffer always gives you at least this long.</p></div>
+    ${msg?`<p class="err">${msg}</p>`:""}<button class="pbtn c m-nova big" data-act="ppStart">START PARTY 🐡</button>`);
+}
+const ppSync=()=>document.querySelectorAll(".ppname").forEach(el=>PP.names[+el.dataset.i]=el.value);
+function ppStart(){ppSync();const names=[];PP.names.map(s=>s.trim()).filter(Boolean).forEach(n=>{let m=n,k=2;while(names.includes(m))m=n+" "+k++;names.push(m);});
+  if(names.length<2)return ppSetup("Add at least 2 players.");
+  Object.assign(PP,{players:names.map(name=>({name,hearts:PP.hearts,meter:0,out:false})),cur:0,pi:null,live:true,paused:false,asking:null,checking:false,pops:0});
+  jumpTo(0);ppNewCat();ppRender();ppLoop();}
+function ppNewCat(note){PP.pi=deckDraw(1,PP.pi!=null?getCat(PROMPTS[PP.pi]):null)[0];PP.used=[];PP.fuse=(12+Math.random()*18)*1000;PP.burn=0;PP.afterPop=false;PP.note=note||"";}
+const ppAlive=()=>PP.players.filter(p=>!p.out);
+function ppNext(i){const n=PP.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(!PP.players[j].out)return j;}return i;}
+function ppSide(){renderSide(PP.players.map((p,k)=>({name:p.name,score:p.out?"OUT":"♥".repeat(p.hearts),turn:k===PP.cur&&!p.out,st:p.out?"✕":""})));}
+function ppRender(){
+  const p=PROMPTS[PP.pi],pl=PP.players[PP.cur];
+  showCard(`
+    <div class="tag">${esc(getCat(p))}${PP.note?` · <span style="color:var(--hl)">${esc(PP.note)}</span>`:""}</div>
+    <div class="cq">${esc(p.q)}</div>
+    <canvas id="ppc" width="96" height="64"></canvas>
+    <div class="pphold">${av(pl.name,PP.cur)}<b>${esc(pl.name)}</b><span class="hint">has the puffer!</span></div>
+    <div class="inrow"><input id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="answer fast & pass it…"><button class="pbtn c m-nova" id="go">PASS 🐡</button></div>
+    <div class="ppmeter"><i style="width:${Math.min(100,pl.meter/PP.heartAt*100)}%"></i><span>RARE METER · spare heart at ${PP.heartAt}</span></div>
+    <div class="fb" id="fb">${PP.used.length?"":"Say anything that fits. No repeats!"}</div>
+    <div class="found" id="ppUsed">${PP.used.map(u=>tchip(u.tier,esc(u.display.toUpperCase()))).join("")}</div>`,{side:true});
+  $("prog").innerHTML=progHTML(`PUFFER PARTY · ${ppAlive().length} FLOATING`,0,0,null);ppSide();
+  const inp=$("ans"),fb=$("fb");inp.focus();
+  const reject=msg=>{fb.innerHTML=`<span class="err">${msg}</span>`;sfx.bad();inp.classList.remove("shake");void inp.offsetWidth;inp.classList.add("shake");inp.select();};
+  const accept=e=>{
+    if(PP.used.some(u=>u.display===e.display))return reject(`${esc(e.display.toUpperCase())} WAS ALREADY SAID`);
+    const pts=TIERS[e.tier].pts;PP.used.push({display:e.display,tier:e.tier});pl.meter+=pts;let extra="";
+    if(pl.meter>=PP.heartAt&&pl.hearts<5){pl.meter-=PP.heartAt;pl.hearts++;extra=" · +1 HEART!";sfx.ok(5);burst(40);}else sfx.ok(Math.min(4,e.tier));
+    toast(`${glow(e.tier,esc(e.display.toUpperCase()))}${extra}`);
+    const nxt=ppNext(PP.cur);PP.cur=nxt;if(PP.fuse-PP.burn<PP.minT*1000)PP.fuse=PP.burn+PP.minT*1000;
+    if(PP.afterPop)ppNewCat("NEW PROMPT");else PP.note="";
+    ppRender();};
+  const judgeIt=async txt=>{const judge=localJudge();if(!judge)return reject("NOT ON THE LIST. TRY ANOTHER!");
+    PP.checking=true;fb.innerHTML=`CHECKING… <span class="hint">(fuse paused)</span>`;const r=await judge(p,txt);PP.checking=false;if(!PP||!PP.live)return;
+    if(r&&r.display&&r.fixAsk){PP.asking={yes:()=>{PP.asking=null;accept(r.orig);},no:()=>{PP.asking=null;reject("OK, TRY ANOTHER!");}};askFix(fb,r.orig,PP.asking.yes,PP.asking.no);return;}
+    if(r&&r.display)return accept(r.orig||r);reject(r&&r.error?"CHECK FAILED: "+esc(r.error):"NOT VALID"+(r&&r.why?": "+esc(r.why):""));};
+  const submit=()=>{if(PP.checking)return;if(PP.asking)return PP.asking.yes();const txt=inp.value.trim();if(!txt)return;
+    const m=matchAns(txt,p);if(m&&!m.suggest)return accept(m.e);
+    if(m&&m.suggest){PP.asking={yes:()=>{PP.asking=null;accept(m.e);},no:()=>{PP.asking=null;fb.innerHTML="";judgeIt(txt);}};askFix(fb,m.e,PP.asking.yes,PP.asking.no);return;}
+    judgeIt(txt);};
+  $("go").onclick=submit;inp.onkeydown=ev=>{if(ev.key==="Enter"){ev.preventDefault();submit();}else if(PP.asking&&ev.key==="Escape"){ev.preventDefault();PP.asking.no();}else if(PP.asking&&ev.key.length===1){PP.asking=null;fb.innerHTML="";}};
+}
+function ppLoop(){let last=performance.now();
+  const step=now=>{if(!PP||!PP.live)return;const dt=Math.min(100,now-last);last=now;
+    if(!PP.checking&&!PP.asking&&$("modal").hidden&&!document.hidden){PP.burn+=dt;if(PP.burn>=PP.fuse){ppPop();}}
+    ppDraw(now);requestAnimationFrame(step);};requestAnimationFrame(step);}
+function ppDraw(t){const c=$("ppc");if(!c)return;const x=c.getContext("2d"),k=Math.min(1,PP.burn/PP.fuse),cx=48,cy=34;x.clearRect(0,0,96,64);
+  const r=8+k*16+Math.sin(t*.02)*k*1.2,danger=PP.fuse-PP.burn<3000,col=k<.5?"#fde047":k<.8?"#fb923c":"#f87171";
+  if(danger&&((t/150)|0)%2){x.fillStyle="rgba(248,113,113,.25)";x.fillRect(0,0,96,64);}
+  x.fillStyle="#7c2d12";for(let a=0;a<6.283;a+=.4){const sx=cx+Math.cos(a+t*.001)*(r+2+k*2),sy=cy+Math.sin(a+t*.001)*(r+2+k*2)*.85;x.fillRect(Math.round(sx),Math.round(sy),1+Math.round(k),1+Math.round(k));}
+  const disc2=(X,Y,R,C)=>{x.fillStyle=C;for(let y=-R;y<=R;y++){const w=Math.round(Math.sqrt(Math.max(0,R*R-y*y)));x.fillRect(Math.round(X-w),Math.round(Y+y*.85),w*2+1,1);}};
+  disc2(cx,cy,r+1,"#3b1d0b");disc2(cx,cy,r,col);disc2(cx-r*.25,cy-r*.3,r*.45,"#fff7c2");disc2(cx,cy+r*.35,r*.6,"#fef3c7");
+  x.fillStyle="#fbbf24";x.fillRect(Math.round(cx-r-5),cy-3,5,6);x.fillRect(Math.round(cx+r*.2),Math.round(cy-r*.9-2),4,3);
+  x.fillStyle="#fff";x.fillRect(Math.round(cx+r*.35),Math.round(cy-r*.35),4,4);x.fillStyle="#1b1238";x.fillRect(Math.round(cx+r*.35)+2,Math.round(cy-r*.35)+1,2,2);
+  x.fillStyle="#9a3412";x.fillRect(Math.round(cx+r*.75),Math.round(cy+r*.15),3,2);
+  const card=$("card");if(card)card.classList.toggle("ppdanger",danger);}
+function ppPop(){const pl=PP.players[PP.cur];pl.hearts--;PP.pops++;sfx.miss();tone(90,.4,"sawtooth",.06);burst(90);SC.shake=600;
+  const out=pl.hearts<=0;if(out)pl.out=true;
+  toast(`💥 POP! <b>${esc(pl.name)}</b> ${out?"is OUT!":"loses a heart"}`);
+  if(ppAlive().length<=1)return ppEnd();
+  PP.cur=ppNext(PP.cur);PP.fuse=(12+Math.random()*18)*1000;PP.burn=0;PP.afterPop=true;PP.note="POP! FINISH THIS ONE";PP.asking=null;ppRender();}
+function ppEnd(){PP.live=false;const w=ppAlive()[0];renderSide(null);burst(120);
+  const order=PP.players.slice().sort((a,b)=>(b.out?0:1)-(a.out?0:1)||b.hearts-a.hearts);
+  finalPanel(order.map(p=>({name:p.name,score:p.out?"OUT":"♥".repeat(p.hearts)})),PP.players.map(p=>p.name),
+    `<div class="row"><button class="pbtn c m-nova" data-act="ppStart">PLAY AGAIN</button><button class="pbtn" data-act="puffer">CHANGE PLAYERS</button><button class="pbtn" data-act="home">HOME</button></div>`,"🐡 LAST ONE FLOATING");}
+Object.assign(ACT,{puffer:()=>{if(PP)PP.live=false;ppSetup();},ppAdd:()=>{ppSync();PP.names.push("");ppSetup();},ppRm:b=>{ppSync();PP.names.splice(+b.dataset.i,1);ppSetup();},
+  ppHearts:b=>{ppSync();PP.hearts=+b.dataset.n;ppSetup();},ppMin:b=>{ppSync();PP.minT=+b.dataset.n;ppSetup();},
+  ppStart:()=>{if(PP&&!document.querySelector(".ppname")&&PP.players){PP.names=PP.players.map(p=>p.name);}ppStart();}});
+
+// ================= PUFFER PARTY ONLINE (host runs the fuse, everyone sees the same puffer) =================
+function ppHostStart(){
+  const p0=N.players;N.pp={players:p0.map(p=>({id:p.id,name:p.name,hearts:N.ppHearts||2,meter:0,out:false})),cur:0,pi:null,used:[],fuse:0,burn:0,afterPop:false,
+    note:"",heartAt:300,minT:N.ppMin||8,checking:false,seq:0,ev:null,live:true};
+  ppHNewCat();clearInterval(N.ppTimer);let last=performance.now();
+  N.ppTimer=setInterval(()=>{const now=performance.now(),dt=Math.min(250,now-last);last=now;const s=N&&N.pp;if(!s||!s.live)return;
+    if(!s.checking){s.burn+=dt;if(s.burn>=s.fuse)ppHPop();}},100);
+  ppHSend();}
+function ppHNewCat(note){const s=N.pp;s.pi=deckDraw(1,s.pi!=null?getCat(PROMPTS[s.pi]):null)[0];s.used=[];s.fuse=(12+Math.random()*18)*1000;s.burn=0;s.afterPop=false;s.note=note||"";}
+const ppHAlive=()=>N.pp.players.filter(p=>!p.out);
+function ppHNext(i){const P=N.pp.players,n=P.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(!P[j].out)return j;}return i;}
+function ppHState(){const s=N.pp;return{t:"pp",seq:++s.seq,pi:s.pi,used:s.used,players:s.players.map(p=>({name:p.name,hearts:p.hearts,meter:p.meter,out:p.out})),cur:s.cur,
+  fuse:Math.round(s.fuse),burn:Math.round(s.burn),paused:s.checking,note:s.note,heartAt:s.heartAt,ev:s.ev};}
+function ppHSend(){const m=ppHState();N.pp.ev=null;broadcast(m);ppNetApply(m);}
+function ppHPop(){const s=N.pp,pl=s.players[s.cur];pl.hearts--;if(pl.hearts<=0)pl.out=true;s.ev={pop:pl.name,out:pl.out};
+  if(ppHAlive().length<=1){s.live=false;clearInterval(N.ppTimer);const order=s.players.slice().sort((a,b)=>(b.out?0:1)-(a.out?0:1)||b.hearts-a.hearts).map(p=>({name:p.name,score:p.out?"OUT":"♥".repeat(p.hearts)}));
+    const m={t:"pp_end",board:order,names:s.players.map(p=>p.name),ev:s.ev};broadcast(m);ppNetEnd(m);return;}
+  s.cur=ppHNext(s.cur);s.fuse=(12+Math.random()*18)*1000;s.burn=0;s.afterPop=true;s.note="POP! FINISH THIS ONE";ppHSend();}
+// an answer arrives from the holder (pid "me" = host). d: {seq, display, tier} for word-bank hits, or {seq, text} to check
+async function ppHAnswer(pid,d){const s=N&&N.pp;if(!s||!s.live)return;const holder=s.players[s.cur];if(!holder||holder.id!==pid)return;
+  const reply=msg=>{if(pid==="me")ppNetReject(msg);else{const pl=N.players.find(p=>p.id===pid);if(pl&&pl.conn)try{pl.conn.send({t:"pp_rej",msg});}catch(e){}}};
+  let e=null;const p=PROMPTS[s.pi];
+  if(d.display){const m=matchAns(String(d.display),p);e=m&&!m.suggest?m.e:{display:String(d.display).slice(0,40).toLowerCase(),tier:Math.max(0,Math.min(5,parseInt(d.tier)||0))};}
+  else{const judge=(aiReady()||wikiOn())?smartJudge:null;if(!judge)return reply("NOT ON THE LIST. TRY ANOTHER!");
+    s.checking=true;ppHSend();const r=await judge(p,String(d.text||"").slice(0,60));if(!N||N.pp!==s)return;s.checking=false;
+    if(!(r&&r.display)){ppHSend();return reply(r&&r.error?"CHECK FAILED: "+r.error:"NOT VALID"+(r&&r.why?": "+r.why:""));}e=r.orig||r;}
+  if(s.players[s.cur]!==holder)return;
+  if(s.used.some(u=>u.display===e.display)){ppHSend();return reply(`${e.display.toUpperCase()} WAS ALREADY SAID`);}
+  s.used.push({display:e.display,tier:e.tier});holder.meter+=TIERS[e.tier].pts;let extra=false;
+  if(holder.meter>=s.heartAt&&holder.hearts<5){holder.meter-=s.heartAt;holder.hearts++;extra=true;}
+  s.ev={ans:e.display,tier:e.tier,by:holder.name,heart:extra};s.cur=ppHNext(s.cur);if(s.fuse-s.burn<s.minT*1000)s.fuse=s.burn+s.minT*1000;
+  if(s.afterPop)ppHNewCat("NEW PROMPT");else s.note="";ppHSend();}
+// ---- every device (host included) draws from the shared state ----
+let PPN=null;
+function ppNetApply(m){if(!N)return;const first=!PPN||!PPN.live;PPN={...m,recv:performance.now(),live:true};
+  const ev=m.ev;if(ev){if(ev.pop){sfx.miss();tone(90,.4,"sawtooth",.06);burst(90);SC.shake=600;toast(`💥 POP! <b>${esc(ev.pop)}</b> ${ev.out?"is OUT!":"loses a heart"}`);}
+    else if(ev.ans){toast(`${esc(ev.by)}: ${glow(ev.tier,esc(ev.ans.toUpperCase()))}${ev.heart?" · +1 HEART!":""}`);ev.heart?(sfx.ok(5),burst(40)):sfx.ok(Math.min(4,ev.tier));}}
+  const mine=m.players[m.cur]&&m.players[m.cur].name===N.me;
+  if(!first&&PPN.renderedFor===m.cur+":"+m.pi+":"+m.used.length+":"+mine&&$("ppc")){ppNetSide();const fb=$("fb");if(fb&&m.paused&&mine)fb.innerHTML=`CHECKING… <span class="hint">(fuse paused)</span>`;return;}
+  PPN.renderedFor=m.cur+":"+m.pi+":"+m.used.length+":"+mine;ppNetRender(mine);if(first)ppNetLoop();}
+function ppNetSide(){const m=PPN;renderSide(m.players.map((p,k)=>({name:p.name,score:p.out?"OUT":"♥".repeat(p.hearts),turn:k===m.cur&&!p.out,me:p.name===N.me,st:p.out?"✕":""})));}
+function ppNetRender(mine){const m=PPN,p=PROMPTS[m.pi],holder=m.players[m.cur],me=m.players.find(x=>x.name===N.me)||{meter:0};
+  showCard(`<div class="tag">${esc(getCat(p))}${m.note?` · <span style="color:var(--hl)">${esc(m.note)}</span>`:""}</div><div class="cq">${esc(p.q)}</div>
+    <canvas id="ppc" width="96" height="64"></canvas>
+    <div class="pphold">${av(holder.name,m.cur)}<b>${mine?"YOU":esc(holder.name)}</b><span class="hint">${mine?"have the puffer! answer fast!":"has the puffer…"}</span></div>
+    ${mine?`<div class="inrow"><input id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="answer fast & pass it…"><button class="pbtn c m-nova" id="go">PASS 🐡</button></div>`:
+      (me.out?`<p class="hint center">You're out. Watch who floats longest!</p>`:`<p class="hint center">Get ready, it could be coming to you next.</p>`)}
+    <div class="ppmeter"><i style="width:${Math.min(100,me.meter/m.heartAt*100)}%"></i><span>YOUR RARE METER · spare heart at ${m.heartAt}</span></div>
+    <div class="fb" id="fb"></div><div class="found">${m.used.map(u=>tchip(u.tier,esc(u.display.toUpperCase()))).join("")}</div>`,{side:true});
+  $("prog").innerHTML=progHTML(`PUFFER PARTY · ROOM ${N.code} · ${m.players.filter(x=>!x.out).length} FLOATING`,0,0,null);ppNetSide();
+  if(!mine)return;const inp=$("ans"),fb=$("fb");inp.focus();let asking=null;
+  const send=d=>{fb.innerHTML=`SENDING…`;if(N.host)ppHAnswer("me",d);else try{N.conn.send({t:"pp_ans",...d});}catch(e){}};
+  const submit=()=>{if(asking)return asking.yes();const txt=inp.value.trim();if(!txt)return;const mm=matchAns(txt,p);
+    if(mm&&!mm.suggest){if(m.used.some(u=>u.display===mm.e.display))return ppNetReject(`${mm.e.display.toUpperCase()} WAS ALREADY SAID`);return send({display:mm.e.display,tier:mm.e.tier});}
+    if(mm&&mm.suggest){asking={yes:()=>{asking=null;send({display:mm.e.display,tier:mm.e.tier});},no:()=>{asking=null;send({text:txt});}};askFix(fb,mm.e,asking.yes,asking.no);return;}
+    send({text:txt});};
+  $("go").onclick=submit;inp.onkeydown=ev=>{if(ev.key==="Enter"){ev.preventDefault();submit();}else if(asking&&ev.key==="Escape"){ev.preventDefault();asking.no();}else if(asking&&ev.key.length===1){asking=null;fb.innerHTML="";}};}
+function ppNetReject(msg){const fb=$("fb"),inp=$("ans");if(fb)fb.innerHTML=`<span class="err">${esc(msg)}</span>`;sfx.bad();if(inp){inp.classList.remove("shake");void inp.offsetWidth;inp.classList.add("shake");inp.select();}}
+function ppNetLoop(){const step=now=>{if(!PPN||!PPN.live||!N)return;const m=PPN,burn=Math.min(m.fuse,m.burn+(m.paused?0:now-m.recv));
+    const c=$("ppc");if(c){const fake={burn,fuse:m.fuse};const o=PP;PP=fake;try{ppDraw(now);}finally{PP=o;}}requestAnimationFrame(step);};requestAnimationFrame(step);}
+function ppNetEnd(m){if(PPN)PPN.live=false;if(m.ev&&m.ev.pop)toast(`💥 POP! <b>${esc(m.ev.pop)}</b> is OUT!`);renderSide(null);burst(120);
+  finalPanel(m.board,m.names,N&&N.host?`<div class="row"><button class="pbtn c m-nova" data-act="again">PLAY AGAIN</button><button class="pbtn" data-act="leave">CLOSE ROOM</button></div>`
+    :`<p class="hint">The host can start another game.</p><button class="pbtn" data-act="leave">LEAVE ROOM</button>`,"🐡 LAST ONE FLOATING");}
 
 // ================= Boot =================
 let rzT=null;addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(resize,150);});
