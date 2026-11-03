@@ -1090,6 +1090,12 @@ PROMPTS.push(
  const st=PROMPTS.find(p=>p.q==="Name something that's sticky");if(st){st.t=st.t.map(t=>t.split("|").filter(a=>a!=="tar").join("|"));st.t[1]+="|tar";
    const t=st.t.map(x=>x.split("|").filter(a=>a&&a!=="mochi"&&a!=="pine pitch"));t[2].push("mochi");t[4].push("pine pitch");st.t=t.map(x=>x.join("|"));}}
 
+// common answers that were missing
+{const addTo=(q,t,list)=>{const p=PROMPTS.find(x=>x.q===q);if(!p)return;const have=new Set(p.t.join("|").split("|").map(a=>a.split("/")[0]));const add=list.split("|").filter(a=>!have.has(a.split("/")[0]));if(add.length){p.t[t]=[p.t[t]].concat(add).filter(Boolean).join("|");p.idx=null;}};
+ addTo("Name something that has a tail",1,"chicken|cow|bird|rabbit|cat");addTo("Name something that has a tail",2,"squirrel|crocodile|shark|whale|airplane");
+ addTo("Name something you need to make a sandwich",1,"chicken|tuna|egg");addTo("Name something that's in a fridge",1,"chicken|meat|vegetables");
+ addTo("Name something that has wings",1,"chicken|duck|pigeon");addTo("Name something you'd see at the zoo",1,"chicken|goat");}
+
 </script>
 <script>
 // ================= Config =================
@@ -1454,8 +1460,23 @@ const XS={
     {s:(cx,cy)=>{P(cx-30,cy+8,60,8,"#57534e");for(let i=0;i<10;i++){const R=rng("cr"+i),x=cx-26+i*6,h=4+R()*10,c=["#f472b6","#fb923c","#c084fc","#facc15","#f87171"][i%5];for(let y=0;y<h;y++)P(x+(y%3===0?1:0),cy+8-y,2,1,c);if(i%3===0)disc(x+1,cy+8-h,2,c);}},w:70,h:40,min:60,max:1400},
     // shipwreck
     {s:(cx,cy)=>{for(let y=0;y<10;y++){const w=28-y*1.5;P(cx-w+y,cy+y,w*2-y,1,y%3?"#78350f":"#92400e");}P(cx-2,cy-22,2,22,"#57534e");P(cx-12,cy-18,20,10,"rgba(226,232,240,.35)");P(cx+8,cy-4,6,4,"#facc15");P(cx-20,cy+1,4,4,"#0b1020");},w:70,h:56,min:400},
-    // sunken temple columns
-    {s:(cx,cy)=>{P(cx-26,cy+10,52,4,"#94a3b8");for(const x of[-20,-8,4,16]){P(cx+x,cy-12,5,22,"#cbd5e1");P(cx+x+4,cy-12,1,22,"#94a3b8");P(cx+x-1,cy-14,7,2,"#e2e8f0");}P(cx-24,cy-18,48,4,"#e2e8f0");P(cx-6,cy-24,12,6,"#cbd5e1");disc(cx,cy-4,2,"#ff5fd2");ddisc(cx,cy-4,6,"rgba(255,95,210,.4)",.4);},w:60,h:50,min:1200},
+    // sunken temple ruins (a lost underwater city): cracked and broken columns, a fallen roof, seaweed and coral, and a glowing cupidium crystal on an altar
+    {s:(cx,cy)=>{const st="#7c8aa0",lt="#a5b4c8",dk="#4b5568";
+      P(cx-30,cy+12,60,5,dk);P(cx-30,cy+12,60,1,st);for(let k=-28;k<28;k+=7)P(cx+k,cy+13,1,3,"#3b4456");
+      // columns of different heights (some snapped off)
+      for(const[x,h]of[[-24,26],[-12,14],[8,24],[20,9]]){P(cx+x,cy+12-h,5,h,st);P(cx+x+1,cy+12-h,1,h,lt);P(cx+x+4,cy+12-h,1,h,dk);
+        if(h>20){P(cx+x-1,cy+12-h-2,7,2,lt);}else{P(cx+x,cy+12-h-1,2,1,st);P(cx+x+3,cy+12-h-2,2,2,st);}
+        P(cx+x+2,cy+12-h+Math.round(h*.4),1,3,dk);}
+      // fallen roof slab leaning on the rubble
+      for(let i=0;i<22;i++)P(cx+2+i,cy+6-Math.round(i*.35),1,3,i%5?st:dk);
+      // altar + cupidium crystal
+      P(cx-6,cy+5,8,7,dk);P(cx-6,cy+5,8,1,lt);
+      ddisc(cx-2,cy-1,9,"rgba(255,95,210,.4)",.4);P(cx-3,cy-4,3,8,"#ff5fd2");P(cx-2,cy-6,1,2,"#ffd1f3");P(cx-4,cy-1,1,3,"#f9a8d4");
+      // seaweed and coral growing on the ruins
+      for(const[x,h,c]of[[-27,10,"#3f6212"],[-16,7,"#4d7c0f"],[25,12,"#3f6212"]])for(let y=0;y<h;y++)P(cx+x+((y>>1)%2),cy+11-y,1,1,c);
+      P(cx+14,cy+9,3,3,"#f472b6");P(cx+15,cy+8,1,1,"#f9a8d4");P(cx-20,cy+9,2,3,"#fb923c");
+      // a little fish swimming through
+      P(cx+10,cy-8,4,2,"#fde047");P(cx+9,cy-8,1,2,"#facc15");P(cx+13,cy-8,1,1,"#0b0b0b");},w:72,h:56,min:1200},
     // treasure chest
     {s:(cx,cy)=>{P(cx-8,cy-4,16,9,"#92400e");P(cx-8,cy-8,16,4,"#b45309");P(cx-8,cy-1,16,1,"#facc15");P(cx-1,cy-2,2,3,"#facc15");for(let i=0;i<6;i++)P(cx-6+i*2,cy-9-(i%2),2,1,"#fde047");ddisc(cx,cy-8,9,"rgba(253,224,71,.3)",.35);},w:30,h:26,min:700},
     // hydrothermal vents
@@ -1465,27 +1486,30 @@ const XS={
     // bioluminescent jelly swarm
     {s:null,w:0,h:0,min:1500,anim:(cx,cy,t)=>{for(let k=0;k<6;k++){const x=cx-30+k*12+Math.sin(t*.001+k)*4,y=cy+Math.sin(t*.0014+k*2)*8,pul=1+Math.sin(t*.004+k)*.3,c=k%2?"#5eead4":"#f0abfc";
       ddisc(x,y,Math.round(6*pul),c,.25);disc(x,y,3,c);P(x-3,y,7,1,c);for(let i=0;i<5;i++)P(x-2+(i%3)*2,y+2+i+Math.sin(t*.005+i)*1,1,1,c);}}},
-    // THE DEEP ONE: a huge shape lurking at the edge of the dark with one giant eye that follows you
-    {s:null,w:0,h:300,min:1800,anim:(cx,cy,t)=>{const side=cx<W/2?-1:1,bx=side<0?W*.02:W*.98,by=cy+Math.sin(t*.0004)*6;
-      ddisc(bx,by,95,"rgba(2,6,23,.55)",.4);
-      // tentacles reaching out, slowly curling
-      for(let k=0;k<7;k++){const base=(side<0?-1.2:Math.PI-1.2)+k*.4*(side<0?1:-1)*(1)+(side<0?0:0);
-        for(let i=0;i<55;i++){const a=base+Math.sin(t*.001+k*1.7+i*.1)*.35*(i/55),rr=55+i*2.6,w=Math.max(1,6-i/10);
-          P(bx+Math.cos(a)*rr-w/2,by+Math.sin(a)*rr*.85-w/2,w,w,i%9===0?"#22406b":"#132442");if(i%6===0&&i>8)P(bx+Math.cos(a)*rr,by+Math.sin(a)*rr*.85+w*.6,1,1,"#5eead4");}}
-      disc(bx,by,62,"#0e1a30");disc(bx,by,56,"#132442");disc(bx-side*8,by-10,40,"#18305a");
-      for(let k=0;k<9;k++){const R=rng("dp"+k);P(bx+(R()-.5)*90,by+(R()-.5)*90,2,2,"#2a4a7a");}
-      const ex=bx-side*34,ey=by-8,blink=(t%5200)<260,vx=W/2-ex,vy=H*.3-ey,d=Math.hypot(vx,vy)||1;
-      ddisc(ex,ey,26,"rgba(253,224,71,.28)",.35);
-      if(blink){P(ex-15,ey-1,30,3,"#fde047");}
-      else{disc(ex,ey,15,"#7c2d12");disc(ex,ey,13,"#fde047");disc(ex-2,ey-2,9,"#fef08a");const px=ex+vx/d*5,py=ey+vy/d*4;P(px-2,py-9,4,18,"#0b0b0b");P(px-3,py-6,6,12,"#0b0b0b");P(ex-6,ey-8,3,3,"#ffffff");}
-      g.globalAlpha=.5;for(let i=0;i<6;i++){const ph=(t*.0004+i*.17)%1;P(ex-side*14+Math.sin(i+t*.002)*3,ey+40-ph*120,2,2,"#7dd3fc");}g.globalAlpha=1;}},
     // anglerfish lure
     {s:null,w:0,h:0,min:2500,anim:(cx,cy,t)=>{const x=cx+Math.sin(t*.0005)*12,y=cy;disc(x,y,7,"#1c1917");P(x+4,y+1,6,2,"#e7e5e4");for(let i=0;i<4;i++)P(x+5+i*1.5,y+1+(i%2),1,1,"#1c1917");P(x+2,y-7,1,6,"#44403c");P(x+3,y-9,4,1,"#44403c");const l=.6+.4*Math.sin(t*.006);ddisc(x+7,y-9,6,"rgba(253,230,138,.5)",.5*l);disc(x+7,y-9,1.5,"#fef9c3");P(x+3,y-2,1,1,"#fef3c7");}}]};
+
+// THE DEEP ONE: a huge creature lurking at the edge of the dark with one giant eye that follows you.
+// It shows up on its own schedule (every ~650 m once you're past 1,500 m), on alternating sides.
+function deepOne(t,a,side){const by=ys(a)+Math.sin(t*.0004)*8,bx=side<0?W*.04:W*.96,S=1.6;
+  ddisc(bx,by,150,"rgba(2,6,23,.5)",.4);
+  for(let k=0;k<8;k++){const base=(side<0?-1.35:Math.PI-1.35)+k*.38*(side<0?1:-1);
+    for(let i=0;i<70;i++){const a2=base+Math.sin(t*.0009+k*1.7+i*.09)*.4*(i/70),rr=(55+i*2.8)*S,w=Math.max(1,9-i/9);
+      P(bx+Math.cos(a2)*rr-w/2,by+Math.sin(a2)*rr*.85-w/2,w,w,i%9===0?"#2b4f86":"#17305a");if(i%5===0&&i>8)P(bx+Math.cos(a2)*rr,by+Math.sin(a2)*rr*.85+w*.6,2,2,"#5eead4");}}
+  disc(bx,by,100,"#0e1a30");disc(bx,by,94,"#16294d");disc(bx-side*12,by-16,66,"#1d3a6b");
+  for(let a2=0;a2<6.283;a2+=.05){if(Math.cos(a2)*-side>.2)P(bx+Math.cos(a2)*95,by+Math.sin(a2)*95,2,2,"#2f5d9c");}
+  for(let k=0;k<14;k++){const R=rng("dp"+k);P(bx+(R()-.5)*150,by+(R()-.5)*150,3,3,"#2a4a7a");}
+  const ex=bx-side*56,ey=by-14,blink=(t%5200)<260,vx=W/2-ex,vy=H*.3-ey,d=Math.hypot(vx,vy)||1;
+  ddisc(ex,ey,44,"rgba(253,224,71,.3)",.4);
+  if(blink){P(ex-24,ey-2,48,5,"#fde047");}
+  else{disc(ex,ey,25,"#7c2d12");disc(ex,ey,22,"#fde047");disc(ex-3,ey-4,15,"#fef08a");const px=ex+vx/d*8,py=ey+vy/d*6;P(px-3,py-15,6,30,"#0b0b0b");P(px-5,py-10,10,20,"#0b0b0b");P(ex-10,ey-13,5,5,"#ffffff");P(ex-3,ey-15,2,2,"#ffffff");}
+  g.globalAlpha=.55;for(let i=0;i<8;i++){const ph=(t*.0004+i*.13)%1;P(ex-side*22+Math.sin(i+t*.002)*4,ey+60-ph*170,3,3,"#7dd3fc");}g.globalAlpha=1;}
 function sceneExtras(t){const L=XS[THEME==="sky"?"sky":TH.up?"space":"ocean"];if(!L)return;const S=240,k0=Math.max(0,Math.floor((cam-160)/S)),k1=Math.floor((cam+H+160)/S);
   for(let k=k0;k<=k1;k++){const R=rng(THEME+"xs"+k),pick=L[Math.floor(R()*L.length)],a=k*S+R()*S*.6;
     if(a<(pick.min||0)||(pick.max&&a>pick.max))continue;if(!vis(a,pick.h||60))continue;
     const left=R()<.5,x=left?W*(.08+R()*.18):W*(.74+R()*.18),y=ys(a);
-    if(pick.s)blit("xs"+THEME+L.indexOf(pick)+W,pick.w,pick.h,x,y,pick.s);if(pick.anim&&HQ)pick.anim(x,y,t);}}
+    if(pick.s)blit("xs"+THEME+L.indexOf(pick)+W,pick.w,pick.h,x,y,pick.s);if(pick.anim&&HQ)pick.anim(x,y,t);}
+  if(!TH.up&&THEME==="ocean"){const D=650,k0=Math.max(0,Math.floor((cam-1500-260)/D)),k1=Math.floor((cam+H+260-1500)/D);for(let k=k0;k<=k1;k++){const a=1500+k*D+300;if(vis(a,260))deepOne(t,a,k%2?1:-1);}}}
 
 function spaceFar(t){
   if(!HQ||cam<700)return;const fade=Math.min(1,(cam-700)/600);
@@ -1692,7 +1716,7 @@ function wallLife(t){
       else{const sw=Math.round(Math.sin(t*.002+i)*2);for(let k=0;k<s*2;k++)P(x+d*1+sw*k/(s*2),y-k,1,1,"#4d7c0f");}}
     else{const gl=.35+.25*Math.sin(t*.002+i);
       if(typ===0){drawGlow(x+d*4,y-3,c,9,gl);disc(x+d*4,y,2,"#1e293b");for(let k=0;k<7;k++){const an=-2.6+k*.35;P(x+d*4+Math.cos(an)*5+Math.round(Math.sin(t*.004+k)),y+Math.sin(an)*5,1,1,c);}}
-      else if(typ===1){for(let k=0;k<3;k++){const h=s+3+k*3,px=x+d*(2+k*3);P(px,y-h,2,h,"#e2e8f0");P(px-1,y-h-2,4,2,"#ef4444");P(px,y-h-3,2,1,"#fca5a5");}}
+      else if(typ===1){}
       else if(typ===2){g.globalAlpha=.6;for(let k=0;k<s+4;k++)P(x+d*(2+(k%2)),y-k,3,1,"#cffafe");g.globalAlpha=1;P(x+d*2,y-s-5,4,1,"#ecfeff");drawGlow(x+d*3,y-s,"#a5f3fc",6,.25);}
       else if(typ===3){const sw=Math.round(Math.sin(t*.002+i)*2);for(let k=0;k<s+6;k++)P(x+d*(1+k*.3)+sw*k/(s+6),y-k,1,1,"#94a3b8");for(let k=0;k<8;k++){const an=k*.785+t*.001;P(x+d*(1+(s+6)*.3)+sw+Math.cos(an)*4,y-s-6+Math.sin(an)*3,1,1,c);}}
       else{for(let k=0;k<5;k++){if(((t/400+k+i)|0)%3===0)continue;P(x+d*(1+k*2),y-(k*3)%7,1,1,c);if(HQ)drawGlow(x+d*(1+k*2),y-(k*3)%7,c,3,.4);}}}}
@@ -2125,7 +2149,7 @@ function playRound(p,o){
     const r=await o.judge(p,txt);
     if(my!==tok||locked)return;
     checking=false;inp.disabled=false;go.disabled=false;inp.focus();
-    if(r&&r.error)return reject("CHECK FAILED: "+esc(r.error));
+    if(r&&r.error){reject("COULDN'T CHECK IT: "+esc(r.error));if(!N){fb.insertAdjacentHTML("beforeend",` <button class="pbtn sm c m-sun" id="cntIt">COUNT IT ANYWAY</button>`);$("cntIt").onclick=()=>finish({display:txt.toLowerCase(),tier:2,keys:[norm(txt)],ai:true,manual:true});}return;}
     if(r&&r.invalid&&r.noCheck&&o.manual){fb.innerHTML=`<span class="err">NOT IN THE WORD BANK.</span> <span class="hint">AI checking is off here (Settings ⚙).</span> <button class="pbtn sm c m-sun" id="cntIt">COUNT IT ANYWAY</button>`;
       sfx.bad();$("cntIt").onclick=()=>{const e={display:txt.toLowerCase(),tier:2,keys:[norm(txt)],ai:true,manual:true};finish(e);};inp.select();return;}
     if(r&&r.invalid&&aiReady()&&!appealed){reject("NOT VALID"+(r.why?": "+esc(r.why):""));
@@ -2165,6 +2189,25 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&$("nextBtn")&&!$("ca
 // ================= Learned answers =================
 // Answers the AI or Wikipedia approved are saved into this device's word bank, so they're instant next time.
 let LEARN=store.get("otc.learned",{});
+// ---- shared learning: answers the AI or Wikipedia accepted for anyone get sent to everyone (GitHub version)
+const LEARN_TOPIC="oneinacupidium-learned-v1",LS={es:null,recent:store.get("otc.learnRecent",[])};
+function learnShare(p,e){if(typeof socOn!=="function"||!socOn()||!e||!e.display)return;const m={q:p.q,d:String(e.display).slice(0,40),t:Math.max(0,Math.min(4,e.tier|0)),k:(e.keys||[]).slice(0,4).map(k=>String(k).slice(0,40))};
+  socPost(LEARN_TOPIC,{k:"a",a:[m]});LS.recent.push(m);LS.recent=LS.recent.slice(-200);store.set("otc.learnRecent",LS.recent);}
+function learnIn(list){let n=0;for(const m of list||[]){if(!m||typeof m.q!=="string"||typeof m.d!=="string")continue;const p=PROMPTS.find(x=>x.q===m.q);if(!p)continue;
+    const d=String(m.d).slice(0,40).toLowerCase(),keys=[norm(d)].concat((m.k||[]).map(k=>norm(String(k))).filter(Boolean)).slice(0,5);if(!keys[0]||(p.no&&p.no.has(keys[0])))continue;
+    const t=Math.max(0,Math.min(4,parseInt(m.t)||0)),cur=LEARN[p.q]||[];if(cur.some(y=>y.d===d))continue;
+    if(p.idx){const known=match(d,p);if(known)continue;p.idx.push({display:d,tier:t,keys,ai:true,learned:1,_wr:1});p._cx=null;}
+    (LEARN[p.q]=cur).push({d,t,k:keys});if(cur.length>300)cur.shift();n++;}
+  if(n)store.set("otc.learned",LEARN);}
+function learnStart(){if(typeof socOn!=="function"||!socOn()||LS.es)return;
+  try{const es=new EventSource(`https://ntfy.sh/${LEARN_TOPIC}/sse?since=12h`);LS.es=es;
+    es.onmessage=ev=>{try{const j=JSON.parse(ev.data);if(j.event&&j.event!=="message")return;const m=JSON.parse(j.message);if(m&&Array.isArray(m.a))learnIn(m.a.slice(0,60));}catch(e){}};}catch(e){}
+  // re-share what this device has learned now and then (and schedule copies), so new players get it even after the relay forgets
+  const share=()=>{if(Date.now()-store.get("otc.learnShared",0)<4*3600e3||!LS.recent.length)return;store.set("otc.learnShared",Date.now());
+    const chunks=[];let cur=[];for(const m of LS.recent.slice(-120)){cur.push(m);if(JSON.stringify(cur).length>3300){cur.pop();chunks.push(cur);cur=[m];}}if(cur.length)chunks.push(cur);
+    chunks.slice(0,4).forEach((c,i)=>setTimeout(()=>{socPost(LEARN_TOPIC,{k:"a",a:c});["23h","47h"].forEach((d,j)=>setTimeout(()=>socPost(LEARN_TOPIC+"?delay="+d,{k:"a",a:c}),800*(j+1)));},3000*(i+1)));};
+  setTimeout(share,30000+Math.random()*30000);setInterval(share,60*60e3);}
+setTimeout(()=>learnStart(),2500);
 function idxOf(p){const idx=buildIndex(p);
   if(!p._ln){p._ln=1;for(const x of LEARN[p.q]||[]){const known=match(x.d,p);
     if(known){for(const k of x.k)if(!known.keys.includes(k))known.keys.push(k);}
@@ -2278,18 +2321,20 @@ async function rarify(p,e,ms=2500){
 function rarifyCached(p,e){if(e.tier>=5||e._wr||e.ai||!canWiki(p))return e;const r=WIKI.cache[p.q+"|"+norm(e.display)];if(r)return applyWikiTier(e,r);wikiLook(p,e.display);return e;}
 function wikiEntry(p,text,w){
   const e={display:String(w.title).replace(/\s*\(.*\)$/,"").toLowerCase(),tier:w.tier==null?2:w.tier,keys:[norm(text),norm(w.title)].filter(Boolean),ai:true,wiki:true,_wr:1};
-  idxOf(p);const known=match(e.display,p);if(known)return known;buildIndex(p).push(e);p._cx=null;return learn(p,e);
+  idxOf(p);const known=match(e.display,p);if(known)return known;buildIndex(p).push(e);p._cx=null;learnShare(p,e);return learn(p,e);
 }
 // true when the judged answer is a correction of what was typed (so we ask before accepting)
 const isFix=(text,disp)=>{const a=compact(norm(text)),b=compact(norm(disp||""));return!!b&&a!==b&&stem(a)!==stem(b)&&!b.includes(a)&&!a.includes(b);};
 async function smartJudge(p,text){if(p.no&&p.no.has(norm(text)))return{invalid:true,why:"that's a territory or region, not a country"};const r=await smartJudge0(p,text);if(r&&r.display&&p.no&&p.no.has(norm(r.display)))return{invalid:true,why:"that's a territory or region, not a country"};if(r&&r.display&&isFix(text,r.display))return Object.assign(Object.create(Object.getPrototypeOf(r)),r,{fixAsk:true,orig:r});return r;}
 async function smartJudge0(p,text){
   const w=canWiki(p)?await wikiLook(p,text):null;
+  // Wikipedia confirmed it: no AI check needed (saves the free AI limit for answers Wikipedia can't decide)
+  if(w&&w.fit)return wikiEntry(p,text,w);
   if(aiReady()){
     let r=await judgeAI(p,text,false,w);if(r&&r.error==="unreadable reply")r=await judgeAI(p,text,true,w);
     if(r&&r.display){if(r.ai&&w&&w.fit&&w.tier!=null&&!r._wr){r.tier=w.tier;r._wr=1;learn(p,r);}return r;}
     if(r&&(r.error||r.invalid)&&w&&w.fit)return wikiEntry(p,text,w);
-    if(r&&r.error&&w&&!w.fit)return{invalid:true,why:"AI unavailable ("+r.error+") and not found on Wikipedia"};
+    if(r&&r.error&&w&&!w.fit)return{error:/limit|try later|too many/i.test(r.error)?"the free AI checks are used up for now":r.error,busy:true};
     return r;
   }
   if(w&&w.fit)return wikiEntry(p,text,w);
@@ -2318,7 +2363,7 @@ function applyAI(p,text,res){
   if(!res.valid)return{invalid:true,why:res.why};
   idxOf(p);const known=match(res.name,p);
   if(known){const k=norm(text);if(k&&!known.keys.includes(k)){known.keys.push(k);learn(p,{display:known.display,tier:known.tier,keys:[k]});}p._cx=null;return known;}
-  const e={display:res.name.toLowerCase(),tier:res.tier,keys:[norm(text),norm(res.name)].filter(Boolean),ai:true};buildIndex(p).push(e);p._cx=null;return learn(p,e);
+  const e={display:res.name.toLowerCase(),tier:res.tier,keys:[norm(text),norm(res.name)].filter(Boolean),ai:true};buildIndex(p).push(e);p._cx=null;learnShare(p,e);return learn(p,e);
 }
 // Reads the AI's verdict even when the reply isn't clean JSON (code fences, extra words, cut-off endings).
 function parseVerdict(txt){
@@ -2341,7 +2386,7 @@ async function judgeAI(p,text,noCache,w,hint){
     catch(e){const c=e&&e.code;if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared"||c==="capability_disabled"){sampleDenied=true;return{error:"Claude access wasn't allowed"};}
       return{error:c==="rate_limited"?"too many checks, slow down":c==="session_expired"?"sign in to Claude again":"couldn't reach Claude"};}
   }else{
-    const kk=cfg.key||BUILTIN_GEMINI_KEY;if(!kk.startsWith("sk-ant")){const BIG=["openai/gpt-oss-120b","llama-3.3-70b-versatile","qwen/qwen3-32b","meta-llama/llama-4-scout-17b-16e-instruct"];const run=(a,big)=>kk.startsWith("gsk_")?oaJudge("https://api.groq.com/openai/v1",kk,a,big?BIG:["llama-3.3-70b-versatile","meta-llama/llama-4-scout-17b-16e-instruct","llama-3.1-8b-instant","qwen/qwen3-32b","openai/gpt-oss-20b","openai/gpt-oss-120b"],true,big):kk.startsWith("sk-or-")?oaJudge("https://openrouter.ai/api/v1",kk,a,["meta-llama/llama-3.3-70b-instruct:free"],false,big):geminiJudge(kk,a);let r=await run(ask,!!hint);if(r.error)return r;if(r.valid===false&&!hint){const r2=await run("A quick first check rejected this answer ("+(r.why||"")+"). Take a careful second look: think about anime, manga, games, films, books and other languages too, and accept it if it is a real or fictional thing that fits the prompt.\n\n"+ask,true);if(r2&&r2.valid)r=r2;}res=r;if(!res.name)res.name=text;}
+    const kk=cfg.key||BUILTIN_GEMINI_KEY;if(!kk.startsWith("sk-ant")){const BIG=["openai/gpt-oss-120b","llama-3.3-70b-versatile","qwen/qwen3-32b","meta-llama/llama-4-scout-17b-16e-instruct"];const run=(a,big)=>kk.startsWith("gsk_")?oaJudge("https://api.groq.com/openai/v1",kk,a,big?BIG:["llama-3.3-70b-versatile","meta-llama/llama-4-scout-17b-16e-instruct","llama-3.1-8b-instant","qwen/qwen3-32b","openai/gpt-oss-20b","openai/gpt-oss-120b"],true,big):kk.startsWith("sk-or-")?oaJudge("https://openrouter.ai/api/v1",kk,a,["meta-llama/llama-3.3-70b-instruct:free"],false,big):geminiJudge(kk,a);let r=await run(ask,!!hint);if(r.error)return r;if(false&&r.valid===false&&!hint){const r2=await run("A quick first check rejected this answer ("+(r.why||"")+"). Take a careful second look: think about anime, manga, games, films, books and other languages too, and accept it if it is a real or fictional thing that fits the prompt.\n\n"+ask,true);if(r2&&r2.valid)r=r2;}res=r;if(!res.name)res.name=text;}
     else{
     const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
     try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ctl.signal,
@@ -2644,7 +2689,8 @@ function blitzRound(){
     if(my!==tok||done)return;
     if(r&&r.display&&r.fixAsk){asking={yes:()=>{asking=null;fb.innerHTML="";add(r.orig);inp.focus();},no:()=>{asking=null;fb.innerHTML="";inp.focus();}};askFix(fb,r.orig,asking.yes,asking.no);return;}
     if(r&&r.display)return add(r.orig||r);
-    fb.innerHTML=`<span class="err">${r&&r.error?"CHECK FAILED: "+esc(r.error):`"${esc(txt)}" ISN'T VALID${r&&r.why?": "+esc(r.why):""}`}</span>`;sfx.bad();
+    fb.innerHTML=`<span class="err">${r&&r.error?"COULDN'T CHECK \""+esc(txt)+"\": "+esc(r.error):`"${esc(txt)}" ISN'T VALID${r&&r.why?": "+esc(r.why):""}`}</span>${r&&r.error&&!N?` <button class="pbtn sm c m-sun" id="cntIt">COUNT IT</button>`:""}`;sfx.bad();
+    if(r&&r.error&&!N&&$("cntIt"))$("cntIt").onclick=()=>{fb.innerHTML="";add({display:txt.toLowerCase(),tier:2,keys:[norm(txt)],ai:true,manual:true});inp.focus();};
   };
   const submit=()=>{
     if(done)return;if(asking)return asking.yes();
@@ -2719,7 +2765,8 @@ function rapidRound(p,o){
     const r=await o.judge(p,txt);checking=Math.max(0,checking-1);if(my!==tok||done)return;
     if(r&&r.display&&r.fixAsk){asking={yes:()=>{asking=null;fb.innerHTML="";add(r.orig);inp.focus();},no:()=>{asking=null;fb.innerHTML="";inp.focus();}};askFix(fb,r.orig,asking.yes,asking.no);return;}
     if(r&&r.display)return add(r.orig||r);
-    fb.innerHTML=`<span class="err">${r&&r.error?"CHECK FAILED: "+esc(r.error):`"${esc(txt)}" ISN'T VALID${r&&r.why?": "+esc(r.why):""}`}</span>`;sfx.bad();
+    fb.innerHTML=`<span class="err">${r&&r.error?"COULDN'T CHECK \""+esc(txt)+"\": "+esc(r.error):`"${esc(txt)}" ISN'T VALID${r&&r.why?": "+esc(r.why):""}`}</span>${r&&r.error&&!N?` <button class="pbtn sm c m-sun" id="cntIt">COUNT IT</button>`:""}`;sfx.bad();
+    if(r&&r.error&&!N&&$("cntIt"))$("cntIt").onclick=()=>{fb.innerHTML="";add({display:txt.toLowerCase(),tier:2,keys:[norm(txt)],ai:true,manual:true});inp.focus();};
   };
   const submit=()=>{if(done)return;if(asking)return asking.yes();const txt=inp.value.trim();if(!txt)return;inp.value="";
     const m=matchAns(txt,p);if(m&&!m.suggest)return add(m.e);
