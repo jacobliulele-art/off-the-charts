@@ -2670,7 +2670,7 @@ const judgeLabel=()=>aiReady()?"AI CHECK ON":wikiOn()?"WIKIPEDIA CHECK ON":"";
 // ================= AI judge =================
 let SAMPLE=null,sampleDenied=false;
 const aiCfg=()=>Object.assign({on:true,key:"",model:MODELS[0][0]},store.get("oddball.ai",{}));
-const aiReady=()=>{const c=aiCfg();return !!(c.on&&(SAMPLE?!sampleDenied:(c.key||BUILTIN_GEMINI_KEY)));};
+const aiReady=()=>{const c=aiCfg();return !!(c.on&&(SAMPLE?!sampleDenied:keyList(c).length));};
 const localJudge=()=>(aiReady()||wikiOn())?smartJudge:null;
 const AI_RULES=`You are the answer judge for a trivia game where players name something that fits a prompt and rarer valid answers score more.
 Be fair and fairly generous. Accept any answer that genuinely, even literally, fits the prompt, including:
@@ -2709,11 +2709,11 @@ async function judgeAI(p,text,noCache,w,hint){
   let res;
   if(SAMPLE){
     try{res=tidy(await SAMPLE.json(AI_RULES+"\n\n"+ask,{modelTier:hint?"default":"quick"}));if(!res.name)res.name=text;
-      if(!res.valid){try{const r2=tidy(await SAMPLE.json(AI_RULES+"\n\nA quick first check rejected this answer ("+res.why+"). Take a careful second look and accept it if it reasonably fits the prompt.\n\n"+ask,{modelTier:"default"}));if(r2.valid){if(!r2.name)r2.name=text;res=r2;}}catch(e){}}}
+}
     catch(e){const c=e&&e.code;if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared"||c==="capability_disabled"){sampleDenied=true;return{error:"Claude access wasn't allowed"};}
       return{error:c==="rate_limited"?"too many checks, slow down":c==="session_expired"?"sign in to Claude again":"couldn't reach Claude"};}
   }else{
-    const kk=cfg.key||BUILTIN_GEMINI_KEY;if(!kk.startsWith("sk-ant")){const BIG=["openai/gpt-oss-120b","llama-3.3-70b-versatile","qwen/qwen3-32b","meta-llama/llama-4-scout-17b-16e-instruct"];const run=(a,big)=>kk.startsWith("gsk_")?oaJudge("https://api.groq.com/openai/v1",kk,a,big?BIG:["llama-3.3-70b-versatile","meta-llama/llama-4-scout-17b-16e-instruct","llama-3.1-8b-instant","qwen/qwen3-32b","openai/gpt-oss-20b","openai/gpt-oss-120b"],true,big):kk.startsWith("sk-or-")?oaJudge("https://openrouter.ai/api/v1",kk,a,["meta-llama/llama-3.3-70b-instruct:free"],false,big):geminiJudge(kk,a);let r=await run(ask,!!hint);if(r.error)return r;if(false&&r.valid===false&&!hint){const r2=await run("A quick first check rejected this answer ("+(r.why||"")+"). Take a careful second look: think about anime, manga, games, films, books and other languages too, and accept it if it is a real or fictional thing that fits the prompt.\n\n"+ask,true);if(r2&&r2.valid)r=r2;}res=r;if(!res.name)res.name=text;}
+    const kks=keyList(cfg);if(kks.length){const r=await multiJudge(kks,ask,!!hint);if(r.error)return r;res=r;if(!res.name)res.name=text;}
     else{
     const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
     try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ctl.signal,
@@ -2729,13 +2729,14 @@ async function judgeAI(p,text,noCache,w,hint){
   return applyAI(p,text,res);
 }
 const BUILTIN_GEMINI_KEY="";
-const GEMINI_MODELS=["gemini-flash-latest","gemini-2.5-flash","gemini-2.0-flash"];let GEMINI_OK=null;
+const GEMINI_MODELS=["gemini-flash-lite-latest","gemini-2.5-flash-lite","gemini-flash-latest","gemini-2.5-flash","gemini-2.0-flash","gemini-2.0-flash-lite"];let GEMINI_OK=null;const GEM_COOL={};
 // Google issues two key styles (AIza... and AQ....); try each way of sending the key until one works.
 const GEMINI_AUTH=[k=>({q:"?key="+encodeURIComponent(k),h:{}}),k=>({q:"",h:{"x-goog-api-key":k}}),k=>({q:"",h:{"Authorization":"Bearer "+k}})];
 async function geminiJudge(key,ask){
   let lastErr="couldn't reach Google";
-  const tries=GEMINI_OK?[GEMINI_OK]:GEMINI_MODELS.flatMap(m=>GEMINI_AUTH.map((a,i)=>({m,i})));
-  for(const t of tries){
+  const now=Date.now(),okm=m=>!(GEM_COOL[key+m]>now);
+  const tries=(GEMINI_OK&&okm(GEMINI_OK.m)?[GEMINI_OK]:[]).concat(GEMINI_MODELS.filter(okm).flatMap(m=>GEMINI_AUTH.map((a,i)=>({m,i}))));let limited=0;
+  for(const t of tries){if(!okm(t.m))continue;
     const auth=GEMINI_AUTH[t.i](key),ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
     try{
       const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+t.m+":generateContent"+auth.q,{method:"POST",signal:ctl.signal,
@@ -2744,7 +2745,8 @@ async function geminiJudge(key,ask){
       const j=await r.json().catch(()=>({}));
       if(r.status===404){lastErr="model not found";continue;}
       if(r.status===401||r.status===403){lastErr="Google rejected the key ("+r.status+")";continue;}
-      if(!r.ok){const msg=(j.error&&j.error.message)||("HTTP "+r.status);return{error:r.status===429?"free AI limit reached, try later":msg.slice(0,90)};}
+      if(r.status===429){const daily=/per.?day|daily|PerDay/i.test(JSON.stringify(j));GEM_COOL[key+t.m]=Date.now()+(daily?3*3600e3:60e3);if(GEMINI_OK&&GEMINI_OK.m===t.m)GEMINI_OK=null;limited++;lastErr="free AI limit reached, try later";continue;}
+      if(!r.ok){const msg=(j.error&&j.error.message)||("HTTP "+r.status);return{error:msg.slice(0,90)};}
       const out=((((j.candidates||[])[0]||{}).content||{}).parts||[]).map(p=>p.text||"").join("");
       const v=parseVerdict(out);if(!v){lastErr="unreadable reply";continue;}
       GEMINI_OK=t;return v;
@@ -2752,10 +2754,36 @@ async function geminiJudge(key,ask){
   }
   return{error:lastErr};
 }
-// OpenAI-style services (Groq, OpenRouter): pick an available model once, then ask for JSON.
+// Several keys (any mix of services) can be pasted; when one runs out we move on to the next.
+const KEY_COOL={};
+const keyList=c=>String((c&&c.key)||BUILTIN_GEMINI_KEY||"").split(/[\s,;]+/).map(k=>k.trim()).filter(k=>k.length>15);
+async function antJudge(key,ask){const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
+  try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ctl.signal,headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:(aiCfg().model)||"claude-haiku-4-5",max_tokens:200,system:AI_RULES,messages:[{role:"user",content:ask}]})});
+    const j=await r.json().catch(()=>({}));if(r.status===401)return{error:"key rejected"};if(r.status===429||r.status===529)return{error:"free AI limit reached, try later"};if(!r.ok)return{error:((j.error&&j.error.message)||("HTTP "+r.status)).slice(0,90)};
+    return parseVerdict((j.content||[]).map(c=>c.text||"").join(""))||{error:"unreadable reply"};
+  }catch(e){return{error:e.name==="AbortError"?"timed out":"network error"};}finally{clearTimeout(to);}}
+const GROQ_FAST=["llama-3.3-70b-versatile","meta-llama/llama-4-scout-17b-16e-instruct","openai/gpt-oss-20b","qwen/qwen3-32b","meta-llama/llama-4-maverick-17b-128e-instruct","moonshotai/kimi-k2-instruct","openai/gpt-oss-120b","llama-3.1-8b-instant"];
+const GROQ_BIG=["openai/gpt-oss-120b","llama-3.3-70b-versatile","moonshotai/kimi-k2-instruct","qwen/qwen3-32b","meta-llama/llama-4-maverick-17b-128e-instruct","meta-llama/llama-4-scout-17b-16e-instruct"];
+function oneKey(k,a,big){
+  if(k.startsWith("gsk_"))return oaJudge("https://api.groq.com/openai/v1",k,a,big?GROQ_BIG:GROQ_FAST,true,big);
+  if(k.startsWith("sk-or-"))return oaJudge("https://openrouter.ai/api/v1",k,a,["meta-llama/llama-3.3-70b-instruct:free","deepseek/deepseek-chat-v3-0324:free","qwen/qwen3-235b-a22b:free","google/gemma-3-27b-it:free","mistralai/mistral-small-3.2-24b-instruct:free"],false,big);
+  if(k.startsWith("csk-"))return oaJudge("https://api.cerebras.ai/v1",k,a,["llama-3.3-70b","gpt-oss-120b","qwen-3-32b","qwen-3-235b-a22b-instruct-2507","llama3.1-8b"],true,big);
+  if(k.startsWith("sk-ant"))return antJudge(k,a);
+  return geminiJudge(k,a);}
+async function multiJudge(keys,a,big){let last=null;const now=Date.now();
+  const order=keys.filter(k=>!(KEY_COOL[k]>now));if(!order.length)return{error:"free AI limit reached on every key, try later"};
+  for(const k of order){const r=await oneKey(k,a,big);if(r&&!r.error)return r;last=r;
+    const e=String(r&&r.error||"");
+    if(/rejected/.test(e)){KEY_COOL[k]=Date.now()+24*3600e3;continue;}
+    if(/limit/i.test(e)){KEY_COOL[k]=Date.now()+60e3;continue;}
+    if(/reach|blocked|network|timed out/i.test(e)&&keys.length>1)continue;
+    return r;}
+  return last&&/limit/i.test(last.error||"")&&keys.length>1?{error:"free AI limit reached on every key, try later"}:last;}
+// OpenAI-style services (Groq, OpenRouter, Cerebras): pick an available model once, then ask for JSON.
 const OA_MODEL={},OA_IDS={},OA_COOL={};
 // Each model on a free plan has its own daily limit, so when one runs out we switch to the next.
-function oaPick(base,prefer){const ids=OA_IDS[base]||[],now=Date.now(),ok=m=>!(OA_COOL[m]>now);
+function oaPick(base,prefer,B){const ids=OA_IDS[base]||[],now=Date.now(),ok=m=>!(OA_COOL[B+m]>now);
   const chat=ids.filter(i=>/llama|gpt-oss|qwen|gemma|mistral|kimi|deepseek|compound/i.test(i)&&!/guard|whisper|tts|embed|prompt/i.test(i));
   return prefer.find(p=>ids.includes(p)&&ok(p))||chat.find(i=>/:free$/.test(i)&&ok(i))||chat.find(ok)||null;}
 async function oaJudge(base,key,ask,prefer,jsonMode,force){
@@ -2763,22 +2791,27 @@ async function oaJudge(base,key,ask,prefer,jsonMode,force){
   if(!OA_IDS[base]){try{const r=await fetch(base+"/models",{headers:h});if(r.status===401)return{error:"key rejected"};const j=await r.json();OA_IDS[base]=(j.data||[]).map(m=>m.id);}
     catch(e){return{error:"couldn't reach the AI service (blocked or offline)"};}}
   const grab=s=>parseVerdict(s);
-  for(let tries=0;tries<4;tries++){
-    const model=(!force&&OA_MODEL[base]&&!(OA_COOL[OA_MODEL[base]]>Date.now()))?OA_MODEL[base]:oaPick(base,prefer);
-    if(!model)return{error:"free AI limit reached on every model, try later"};if(!force)OA_MODEL[base]=model;
+  let waited=false;const B=base+"#"+key.slice(-10)+"#";
+  for(let tries=0;tries<10;tries++){let strictRetry=false;
+    const model=(!force&&OA_MODEL[B]&&!(OA_COOL[B+OA_MODEL[B]]>Date.now()))?OA_MODEL[B]:oaPick(base,prefer,B);
+    if(!model)return{error:"free AI limit reached on every model, try later"};if(!force)OA_MODEL[B]=model;
     let limited=false;
     // Try strict JSON mode first; if the service rejects the format, salvage its draft or retry in plain mode.
     for(const strict of jsonMode?[true,false]:[false]){
       const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
-      try{const body={model,temperature:0,max_tokens:900,messages:[{role:"system",content:AI_RULES},{role:"user",content:ask+" Respond with one JSON object only."}]};if(strict)body.response_format={type:"json_object"};
+      try{const body={model,temperature:0,max_tokens:900,messages:[{role:"system",content:AI_RULES},{role:"user",content:ask+" Respond with one JSON object only."}]};if(strict)body.response_format={type:"json_object"};if(/gpt-oss/.test(model))body.reasoning_effort="low";
         const r=await fetch(base+"/chat/completions",{method:"POST",signal:ctl.signal,headers:h,body:JSON.stringify(body)});
         const j=await r.json().catch(()=>({}));
         if(!r.ok){if(r.status===401)return{error:"key rejected"};
-          if(r.status===429||r.status===413||r.status===404||/decommission|not found|does not exist/i.test(JSON.stringify(j))){OA_COOL[model]=Date.now()+(r.status===429?10*60e3:24*3600e3);limited=true;break;}
+          if(r.status===429||r.status===413||r.status===404||/decommission|not found|does not exist/i.test(JSON.stringify(j))){
+            const js=JSON.stringify(j),daily=/per day|\(TPD\)|\(RPD\)|daily/i.test(js),ra=parseFloat(r.headers.get("retry-after"))||((js.match(/try again in ([\d.]+)s/i)||[])[1]*1)||0;
+            if(r.status===429&&!daily&&ra&&ra<=8&&!waited){waited=true;await new Promise(z=>setTimeout(z,ra*1000+200));strictRetry=true;break;}
+            OA_COOL[B+model]=Date.now()+(r.status===429?(daily?60*60e3:Math.max(20e3,ra*1000||60e3)):24*3600e3);limited=true;break;}
           const fg=grab(j.error&&j.error.failed_generation);if(fg)return fg;if(strict)continue;return{error:((j.error&&j.error.message)||("HTTP "+r.status)).slice(0,90)};}
         const msg=(((j.choices||[])[0]||{}).message||{}),v=grab(msg.content)||grab(msg.reasoning);if(v)return v;if(strict)continue;return{error:"unreadable reply"};
       }catch(e){return{error:e.name==="AbortError"?"timed out":"couldn't reach the AI service (blocked or offline)"};}finally{clearTimeout(to);}
     }
+    if(strictRetry)continue;
     if(!limited)return{error:"unreadable reply"};
   }
   return{error:"free AI limit reached, try later"};
@@ -2835,9 +2868,10 @@ function settings(msg){
       <p class="hint">When an answer isn't in the word bank, AI checks whether it's valid and how rare it is. The clock pauses while it checks, and each verdict is remembered.</p>
       <label class="tog"><input type="checkbox" id="aion" ${c.on?"checked":""}> Check answers with AI</label>
       ${SAMPLE?`<p class="hint">Uses your Claude account. No key needed.${sampleDenied?` <span class="err">Permission was declined this session, so checking is off until you reload.</span>`:""}</p>`
-      :`<div style="margin-top:10px"><span class="lbl">AI KEY</span><input id="aikey" type="password" autocomplete="off" value="${esc(c.key)}" placeholder="gsk_… (Groq), AIza…, sk-or-… or sk-ant-…"></div>
+      :`<div style="margin-top:10px"><span class="lbl">AI KEY</span><div id="aikeys">${(String(c.key||"").split(/[\s,;]+/).filter(Boolean).concat(c.key?[]:[""])).map((k,i)=>keyBox(k,i)).join("")}</div>
+        <button class="pbtn sm" type="button" onclick="addKeyBox()" style="margin-top:6px">+ ADD ANOTHER KEY</button></div>
       <span class="lbl">CLAUDE MODEL (ANTHROPIC KEY ONLY)</span><select id="aimodel">${MODELS.map(([v,l])=>`<option value="${v}" ${c.model===v?"selected":""}>${l}</option>`).join("")}</select>
-      <p class="hint">Paste a free Groq key (starts with gsk_, from console.groq.com) to turn on AI checking. Google Gemini (AIza…), OpenRouter (sk-or-…) and Anthropic (sk-ant-…) keys also work. The key is saved only on this device, never in the game file.</p>`}
+      <p class="hint">Paste a free Groq key (gsk_…, from console.groq.com) to turn on AI checking. For more free checks, tap + ADD ANOTHER KEY and paste a second key (up to 10): when one runs out, checking moves on to the next. Free keys from Groq (gsk_…), Google AI Studio (AIza…), Cerebras (csk-…, cloud.cerebras.ai) and OpenRouter (sk-or-…) all work, and you can mix them. Anthropic keys (sk-ant-…) work too. Keys are saved only on this device, never in the game file.</p>`}
       <div class="row"><button class="pbtn c m-nova" data-act="aiSave">SAVE</button><button class="pbtn" data-act="aiTest">TEST</button><button class="pbtn" data-act="aiClear">FORGET LEARNED ANSWERS</button></div>
       <p id="aimsg" class="hint">${msg||""}</p></div>
     <div class="glass card"><h3 style="font-size:13px">GRAPHICS</h3><p class="hint">Auto switches to performance mode if the game starts to lag.</p>
@@ -2846,7 +2880,11 @@ function settings(msg){
     <div class="glass card"><h3 style="font-size:13px">ABOUT</h3><p class="hint">One in a Cupidium. ${socOn()?"When you open the game it sends a small visit ping (your player name and the time) so the developer can see who's playing, and your best scores go on the shared leaderboards.":""}</p>
       <button class="pbtn sm" data-act="dev" style="opacity:.6">DEVELOPER</button></div>`);
 }
-function aiSave(){const c=aiCfg();store.set("oddball.ai",{on:$("aion").checked,key:$("aikey")?$("aikey").value.trim():c.key,model:$("aimodel")?$("aimodel").value:c.model});}
+// One box per key; when a key runs out, checking moves on to the next box.
+const keyKind=k=>!k?"":k.startsWith("gsk_")?"Groq":k.startsWith("AIza")||k.startsWith("AQ.")?"Google Gemini":k.startsWith("csk-")?"Cerebras":k.startsWith("sk-or-")?"OpenRouter":k.startsWith("sk-ant")?"Anthropic":"unknown key type";
+function keyBox(k,i){return `<div class="keyrow" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input class="aikey" type="password" autocomplete="off" value="${esc(k)}" placeholder="${i?"another key (optional)":"gsk_… (Groq)"}" oninput="this.parentNode.querySelector('.kk').textContent=keyKind(this.value.trim())" style="flex:1"><span class="kk hint" style="width:110px;margin:0;white-space:nowrap">${keyKind(k)}</span><button class="pbtn sm" type="button" title="Remove" onclick="this.parentNode.remove()" style="${i?"":"visibility:hidden"}">✕</button></div>`;}
+function addKeyBox(){const w=$("aikeys");if(!w)return;const n=w.querySelectorAll(".keyrow").length;if(n>=10)return;w.insertAdjacentHTML("beforeend",keyBox("",n));const ins=w.querySelectorAll(".aikey");ins[ins.length-1].focus();}
+function aiSave(){const c=aiCfg();const boxes=[...document.querySelectorAll("#aikeys .aikey")];const key=boxes.length?[...new Set(boxes.map(b=>b.value.trim()).filter(Boolean))].join(" "):c.key;store.set("oddball.ai",{on:$("aion").checked,key,model:$("aimodel")?$("aimodel").value:c.model});}
 async function aiTest(){
   aiSave();if(!aiReady())return($("aimsg").textContent="Turn checking on first"+(SAMPLE?".":" and add a key."));
   $("aimsg").textContent="Testing…";
