@@ -2903,7 +2903,7 @@ function settings(msg){
       <div class="seg">${[["auto","AUTO"],["high","HIGH"],["low","PERFORMANCE"]].map(([v,l])=>`<button class="pbtn ${PERF===v?"on":""}" data-act="perf" data-v="${v}">${l}</button>`).join("")}</div></div>
     <div class="glass card"><h3 style="font-size:13px">SOUND</h3><button class="pbtn ${SND.on?"on":""}" data-act="soundSet">${SND.on?"ON":"OFF"}</button></div>
     <div class="glass card"><h3 style="font-size:13px">ABOUT</h3><p class="hint">One in a Cupidium. ${socOn()?"When you open the game it sends a small visit ping (your player name and the time) so the developer can see who's playing, and your best scores go on the shared leaderboards.":""}</p>
-      <button class="pbtn sm c m-sun" data-act="dev">🛠 DEVELOPER · SEE VISITS</button></div>`);
+      <button class="pbtn sm" data-act="dev" style="opacity:.5">dev</button></div>`);
 }
 // One box per key; when a key runs out, checking moves on to the next box.
 const keyKind=k=>!k?"":k.startsWith("gsk_")?"Groq":k.startsWith("AIza")||k.startsWith("AQ.")?"Google Gemini":k.startsWith("csk-")?"Cerebras":k.startsWith("sk-or-")?"OpenRouter":k.startsWith("sk-ant")?"Anthropic":"unknown key type";
@@ -4757,7 +4757,7 @@ function landing(){
       <button class="glass lcard" data-act="otc"><b>OFF THE CHARTS</b><span>The rare answer game. Daily, endless, rapid fire and party.</span><em>PLAY ${TH.up?"▲":"▼"}</em></button>
       <button class="glass lcard cupl" data-act="cuphub"><b><span class="glow cup" style="padding:0 6px">CUPIDIUM ARCADE</span></b><span>Fifteen arcade games about the rarest element in the universe.</span><em>ENTER 💖</em></button>
     </div>
-    <div class="menubar"><button class="pbtn" data-act="leaderboards" data-back="landing">🏆 LEADERBOARDS</button><button class="pbtn" data-act="dev" title="Developer: see who has visited (passcode)">🛠 ${store.get("otc.dev",false)?"VISITS":"DEV"}</button><button class="pbtn" data-act="skins">SKINS</button><button class="pbtn" data-act="palettes">COLORS</button>
+    <div class="menubar"><button class="pbtn" data-act="leaderboards" data-back="landing">🏆 LEADERBOARDS</button>${store.get("otc.dev",false)?`<button class="pbtn" data-act="dev">🛠 VISITS</button>`:""}<button class="pbtn" data-act="skins">SKINS</button><button class="pbtn" data-act="palettes">COLORS</button>
       <div class="glass themeseg">${Object.entries(THEMES).map(([k,t])=>`<button class="${k===THEME?"on":""}" data-act="theme3" data-t="${k}">${t.name}</button>`).join("")}</div>
       <button class="pbtn" data-act="settings" aria-label="Settings">${icon("gear",18)}</button></div>`,{cls:"menu"});
 }
@@ -4990,7 +4990,7 @@ function lbStart(){if(!lbOn()||LB.es)return;
     if(Date.now()-store.get("otc.lbMineSched",0)>11*3600e3){store.set("otc.lbMineSched",Date.now());["22h","46h"].forEach((d,i)=>setTimeout(()=>socPost(LB_TOPIC+"?delay="+d,body),2000*(i+1)));}};
   LB.mine=mine;setTimeout(()=>mine(),8000+Math.random()*8000);setInterval(()=>mine(),30*60e3);
   setTimeout(share,20000+Math.random()*40000);setInterval(share,30*60e3);}
-let LBV={k:"endless"};
+let LBV={k:"daily"};
 function leaderboards(back){LBV.back=back||LBV.back||"landing";
   // two sections: Off the Charts modes, and the arcade grouped like the arcade menu
   const OTC=[["MODES",["daily","blitz","endless","rendless"]],["🌍 GEOGRAPHY",["endlessGeo","rendlessGeo"]]],
@@ -5015,7 +5015,9 @@ Object.assign(ACT,{leaderboards:b=>leaderboards(b&&b.dataset&&b.dataset.back),lb
 // ---- visit log (developer only): each visit sends a tiny ping with the player's name
 function nameHist(){const h=store.get("otc.nameHist",[]),cur=lbMe();if(cur&&h[h.length-1]!==cur){h.push(cur);store.set("otc.nameHist",h.slice(-12));}return store.get("otc.nameHist",[]);}
 function devPing(force){if(!lbOn())return;const last=store.get("otc.devPinged",0);if(!force&&Date.now()-last<45*60e3)return;store.set("otc.devPinged",Date.now());
-  const v={i:LB.id,n:lbMe()||"",h:nameHist(),t:Date.now(),w:innerWidth<700?"phone":"computer"};socPost(DEV_TOPIC,v);
+  const v={i:LB.id,n:lbMe()||"",h:nameHist(),t:Date.now(),w:innerWidth<700?"phone":"computer"};
+  // if the relay was busy, try again a little later (up to 4 times) instead of losing the visit
+  Promise.resolve(socPost(DEV_TOPIC,v)).then(r=>{if(r&&r.ok){window.__devTry=0;return;}store.set("otc.devPinged",0);window.__devTry=(window.__devTry||0)+1;if(window.__devTry<=4)setTimeout(()=>devPing(true),60e3*window.__devTry);}).catch(()=>{store.set("otc.devPinged",0);window.__devTry=(window.__devTry||0)+1;if(window.__devTry<=4)setTimeout(()=>devPing(true),60e3*window.__devTry);});
   // the relay forgets after 12h, so schedule a few delayed copies of this visit (about 3 days in total)
   if(force||Date.now()-store.get("otc.devSched",0)>12*3600e3){store.set("otc.devSched",Date.now());["23h","47h"].forEach((d,i)=>setTimeout(()=>socPost(DEV_TOPIC+"?delay="+d,v),1200*(i+1)));}}
 // any time the player's name changes (party name, friends name, leaderboard name), tell the visit log
@@ -5031,8 +5033,10 @@ async function devOpen(){if(!store.get("otc.dev",false)){const code=prompt("Deve
   log.sort((a,b)=>b.t-a.t);if(log.length>3000)log.length=3000;store.set("otc.devlog",log);
   const people={};log.slice().sort((a,b)=>a.t-b.t).forEach(v=>{const k=v.i;(people[k]=people[k]||{n:v.n,c:0,last:0,first:v.t,names:[]});const p=people[k];p.c++;if(v.t>p.last){p.last=v.t;if(v.n)p.n=v.n;}p.first=Math.min(p.first,v.t);
     for(const nm of (v.h||[]).concat(v.n?[v.n]:[]))if(nm&&!p.names.includes(nm))p.names.push(nm);});
+  // anyone on a leaderboard counts as seen too (in case their visit message never made it through)
+  for(const k in LB.b)for(const r of LB.b[k]){if(!r||!r.i||r.i===LB.id&&false)continue;const p=people[r.i]||(people[r.i]={n:r.n,c:0,last:0,first:r.t||0,names:[],lb:1});if(!p.n)p.n=r.n;if((r.t||0)>p.last){p.last=r.t||p.last;}if(r.n&&!p.names.includes(r.n))p.names.push(r.n);p.lbk=(p.lbk||[]);if(!p.lbk.includes(k))p.lbk.push(k);}
   const box=$("devBox");if(!box)return;
-  box.innerHTML=`<div class="glass card"><h3 style="font-size:13px">PLAYERS (${Object.keys(people).length})</h3><div class="devt">${Object.entries(people).sort((a,b)=>b[1].last-a[1].last).map(([i,p])=>`<div class="devp"><b>${esc(p.n||"(no name) "+i.slice(0,4))}</b><span>${p.c} visit${p.c>1?"s":""}</span><span>last ${new Date(p.last).toLocaleString()}</span>${p.names.length>1?`<small>names used: ${p.names.map(esc).join(" → ")}</small>`:""}<small class="hint">device ${esc(i)}</small></div>`).join("")||`<p class="hint">Nobody yet.</p>`}</div></div>
+  box.innerHTML=`<div class="glass card"><h3 style="font-size:13px">PLAYERS (${Object.keys(people).length})</h3><div class="devt">${Object.entries(people).sort((a,b)=>b[1].last-a[1].last).map(([i,p])=>`<div class="devp"><b>${esc(p.n||"(no name) "+i.slice(0,4))}</b><span>${p.c?`${p.c} visit${p.c>1?"s":""}`:"seen on leaderboard"}</span>${p.lbk?`<small class="hint">on boards: ${p.lbk.slice(0,4).map(k=>esc(lbName(k.startsWith("daily:")?"daily":k))).join(", ")}</small>`:""}<span>last ${new Date(p.last).toLocaleString()}</span>${p.names.length>1?`<small>names used: ${p.names.map(esc).join(" → ")}</small>`:""}<small class="hint">device ${esc(i)}</small></div>`).join("")||`<p class="hint">Nobody yet.</p>`}</div></div>
     <div class="glass card"><h3 style="font-size:13px">RECENT VISITS</h3><div class="devt">${log.slice(0,200).map(v=>`<div><span>${new Date(v.t).toLocaleString()}</span><b>${esc(v.n||"(no name) "+v.i.slice(0,4))}</b><span>${v.w||""}</span></div>`).join("")}</div>
     <p class="hint">Each visit is kept on the relay for about 3 days, and everything this page has seen is saved on this device. A player only shows up once their copy of the game has been updated and they open it on the GitHub site (not the Claude link) on a network that doesn't block ntfy.sh.</p>
     <div class="row"><button class="pbtn sm c m-nova" data-act="dev">↻ REFRESH</button><button class="pbtn sm" data-act="devLock">LOCK DEVELOPER PAGE</button></div></div>`;
